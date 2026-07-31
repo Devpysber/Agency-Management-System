@@ -26,6 +26,8 @@ Route::prefix('companies')->name('companies.')->group(function(){
 // ==================== DEALS ====================
 Route::prefix('deals')->name('deals.')->group(function(){
     Route::livewire('/pipeline', 'pages::admin.deals.pipeline')->name('pipeline');
+    Route::livewire('/show/{id}', 'pages::admin.deals.show')->name('view');
+    Route::livewire('/edit/{id}', 'pages::admin.deals.edit')->name('edit');
     Route::livewire('/all', 'pages::admin.deals.all')->name('all');
     Route::livewire('/add', 'pages::admin.deals.add')->name('add');
     Route::livewire('/lost', 'pages::admin.deals.lost')->name('lost');
