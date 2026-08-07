@@ -676,7 +676,12 @@
                             <span>Dashboard</span>
                         </a>
                     </div>
-
+                    <div class="nav-item dashboard-link">
+                        <a href="{{ route('staff.create') }}" class="active">
+                            <i class="fas fa-users"></i>
+                            <span><b>Staff</b></span>
+                        </a>
+                    </div>
                     <!-- ==================== CONTACTS ==================== -->
                     <div class="nav-section">
                         <div class="nav-header" onclick="toggleDropdown(this)">
@@ -821,7 +826,6 @@
                             </div>
                         </div>
                     </div>
-
                     <!-- ==================== CALENDAR ==================== -->
                     <div class="nav-section">
                         <div class="nav-header" onclick="toggleDropdown(this)">

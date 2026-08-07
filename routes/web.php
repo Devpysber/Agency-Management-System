@@ -5,8 +5,8 @@ use App\Http\Controllers\pagesController;
 Route::get('/',function(){
     return view('auth.login');
 });
-// direct route ...
-Route::livewire('dashboard','pages::admin.dashboard')->name('dashboard');
+Route::middleware('auth')->group(function(){
+    Route::livewire('dashboard','pages::admin.dashboard')->name('dashboard');
 Route::prefix('contacts')->group(function(){
     Route::livewire('/all','pages::admin.contacts.allcontacts')->name('contacts.all');
     Route::livewire('/add','pages::admin.contacts.add')->name('contacts.add');
@@ -40,7 +40,9 @@ Route::prefix('tasks')->name('tasks.')->group(function(){
     Route::livewire('/create', 'pages::admin.tasks.create')->name('create');
     Route::livewire('/completed', 'pages::admin.tasks.completed')->name('completed');
 });
-
+Route::prefix('staff')->name('staff.')->group(function(){
+    Route::livewire('/create', 'pages::admin.staff.create')->name('create');
+});
 // ==================== CALENDAR ====================
 Route::prefix('calendar')->name('calendar.')->group(function(){
     Route::livewire('/schedule', 'pages::admin.calendar.schedule')->name('schedule');
@@ -68,6 +70,8 @@ Route::prefix('settings')->name('settings.')->group(function(){
     Route::livewire('/user-management', 'pages::admin.settings.user-management')->name('user-management');
     Route::livewire('/roles-permissions', 'pages::admin.settings.roles-permissions')->name('roles-permissions');
 });
+});
+// direct route ...
 
 // authentication route ..
 Auth::routes();
