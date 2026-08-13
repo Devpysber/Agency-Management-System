@@ -10,7 +10,7 @@ new class extends Component
     use WithFileUploads;
     // Form properties
     public $staff_id;
-    public $image;
+    public $photo;
     public $name;
     public $email;
     public $whatsapp;
@@ -83,30 +83,33 @@ new class extends Component
         } else {
             $this->validate();
         }
-
-        try {
-            $staff = Staff::updateOrCreate(
-                ['id' => $this->staff_id],
-                [
-                    'name' => $this->name,
-                    'email' => $this->email,
-                    'whatsapp' => $this->whatsapp,
-                    'designation' => $this->designation,
-                    'joining_date' => $this->joining_date,
-                    'user_id' => $this->user_id,
-                    'salary' => $this->salary,
-                ]
-            );
-
-            $message = $this->staff_id ? 'Staff updated successfully!' : 'Staff created successfully!';
-            session()->flash('success', $message);
-            
-            $this->resetForm();
-            $this->fetchStaff();
-            
-        } catch (\Exception $e) {
-            session()->flash('error', 'Error: ' . $e->getMessage());
+      //  $imagePath = null;
+        if($this->photo){
+            $imageName = time().'.'.$this->photo->extension();
+            $this->photo->storeAs('staffs',$imageName,'public');
+            $imagePath = 'staffs/'.$imageName;
         }
+        if($this->staff_id){
+            $staff = staff::find($this->staff_id);
+        } else {
+            $staff = new staff;
+        }
+        $staff->name = $this->name;
+        $staff->email = $this->email;
+        $staff->whatsapp = $this->whatsapp;
+        $staff->designation = $this->designation;
+        $staff->joining_date = $this->joining_date;
+        $staff->user_id = $this->user_id;
+        $staff->salary = $this->salary;
+        if($this->photo){
+            $staff->image = $imagePath;
+        }
+        $staff->save();
+        
+        $this->resetForm();
+        $this->fetchStaff();
+        session()->flash('success','Staff saved successfully!');
+
     }
 
     public function edit($id)
@@ -208,7 +211,7 @@ new class extends Component
                         </h5>
                     </div>
                     <div class="card-body">
-                        <form wire:submit.prevent="save">
+                        <form wire:submit.prevent="save" >
                              <div class="mb-3">
                                 <label class="form-label fw-medium">
                                     <i class="fas fa-user me-1 text-muted"></i>
@@ -339,11 +342,8 @@ new class extends Component
                             <table class="table table-hover">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>#</th>
                                         <th>Name</th>
-                                        <th>Email</th>
                                         <th>Designation</th>
-                                        <th>Joining Date</th>
                                         <th>Salary</th>
                                         <th>Actions</th>
                                     </tr>
@@ -351,14 +351,13 @@ new class extends Component
                                 <tbody>
                                     @forelse ($staffs as $index => $staff)
                                     <tr>
-                                        <td>{{ $index + 1 }}</td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="staff-avatar me-2">
-                                                    <i class="fas fa-user-circle fa-2x text-primary"></i>
-                                                </div>
                                                 <div>
-                                                    <h6 class="mb-0 fw-semibold">{{ $staff->name }}</h6>
+                                                    <h6 class="mb-0 fw-semibold">
+                                                    <img src="{{ asset('storage/'.$staff->image) }}" class="rounded-circle me-2" width="30" height="30" alt="">    
+                                                    {{ $staff->name }}
+                                                    </h6>
                                                     @if($staff->whatsapp)
                                                         <small class="text-muted">
                                                             <i class="fab fa-whatsapp text-success"></i>
@@ -369,17 +368,7 @@ new class extends Component
                                             </div>
                                         </td>
                                         <td>
-                                            <a href="mailto:{{ $staff->email }}" class="text-primary">
-                                                {{ $staff->email }}
-                                            </a>
-                                        </td>
-                                        <td>
                                             <span class="badge bg-secondary">{{ $staff->designation }}</span>
-                                        </td>
-                                        <td>
-                                            <small class="text-muted">
-                                                {{ $staff->joining_date ? $staff->joining_date->format('d M Y') : 'N/A' }}
-                                            </small>
                                         </td>
                                         <td>
                                             <span class="fw-semibold">
@@ -455,7 +444,7 @@ new class extends Component
                             </div>
                             <div class="col-md-6">
                                 <label class="text-muted small fw-medium">Joining Date</label>
-                                <p>{{ $viewingStaff->joining_date ? $viewingStaff->joining_date->format('d M Y') : 'N/A' }}</p>
+                                <p>{{ $viewingStaff->joining_date ? $viewingStaff->joining_date : 'N/A' }}</p>
                             </div>
                             <div class="col-md-6">
                                 <label class="text-muted small fw-medium">Salary</label>
@@ -476,7 +465,7 @@ new class extends Component
                             </div>
                             <div class="col-12">
                                 <label class="text-muted small fw-medium">Created At</label>
-                                <p>{{ $viewingStaff->created_at ? $viewingStaff->created_at->format('d M Y h:i A') : 'N/A' }}</p>
+                                <p>{{ $viewingStaff->created_at ? $viewingStaff->created_at : 'N/A' }}</p>
                             </div>
                             <div class="col-12">
                                 <label class="text-muted small fw-medium">Updated At</label>
