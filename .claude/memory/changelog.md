@@ -2,6 +2,31 @@
 
 Short, chronological, meaningful changes only. No code dumps.
 
+## 2026-08-28 (batch 16 — prod 500 #3: middleware redirects + deploy self-modify + CI green)
+
+- Non-admin users: 500 on module-gated Livewire routes (staff -> /attendance),
+  403 elsewhere, "new tab shows login page". CAUSES + FIXES:
+  1. `CheckModuleAccess`/`RedirectIfAuthenticated`/`EnsureClientScope` returned
+     `redirect()->...` from `handle(): Response`. In a Livewire page request
+     `redirect()` resolves to `Livewire\...\Redirector` — not a Symfony
+     Response — so the `: Response` hint threw TypeError 500. Build
+     `new RedirectResponse(...)` directly. (commit ddbb9a3)
+  2. `deploy/update.sh` self-modifies: `git reset --hard` rewrites the running
+     script -> bash executes an old/new hybrid -> a root artisan call keeps
+     re-creating storage/framework/views/livewire/ root-owned -> 500 on first
+     request to any un-compiled Livewire page (/deals/pipeline). Split into
+     stage-1 (fetch+reset) that `exec`s stage-2 from the fresh file; all
+     artisan as www-data; setgid on storage dirs. (commit 79482e0)
+- Fixed the 5 pre-existing red tests -> CI now GREEN (commit bd55202,
+  conclusion=success):
+  - RestrictEditing: save/submit accepts module Create OR Edit; addmilestone/
+    addpayment self-gated.
+  - projects/show mount lets Projects.View holders open any project.
+  - DesignationDashboardTest asserts "Company-wide overview" not "Welcome back".
+  Full suite 193 passed / 0 failed.
+- `/assistant` 403 for role=staff is BY DESIGN (admin-only). Use
+  test@example.com / password (admin) for full access.
+
 ## 2026-08-28 (batch 15 — prod 500 #2: livewire compile-dir perms + CI)
 
 - Prod: only /login rendered; correct creds -> 500 on /dashboard + all authed

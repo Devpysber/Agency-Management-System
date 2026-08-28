@@ -1,6 +1,38 @@
 # Current Task
 
-## Now (2026-08-28, latest — prod 500 #2: livewire compile-dir perms) — DONE, verified
+## Now (2026-08-28, latest — prod 500 #3 + CI green) — DONE, verified
+Symptoms: non-admin login -> 403 on some nav / 500 on others; "new tab shows
+login"; CI red.
+FIXES (commits ddbb9a3, 79482e0, bd55202 — deployed, CI green on bd55202):
+1. `CheckModuleAccess` / `RedirectIfAuthenticated` / `EnsureClientScope` did
+   `return redirect()->...` from a `handle(): Response` method. Inside a
+   Livewire page request `redirect()` = `Livewire\...\Redirector` (NOT a
+   Symfony Response) -> TypeError 500 for every permission-denied non-admin on
+   a module-gated Livewire route (e.g. staff -> /attendance). Now build
+   `new \Illuminate\Http\RedirectResponse(...)` directly + `session()->flash()`.
+   This also fixes "new tab shows login" (RedirectIfAuthenticated now bounces
+   authed users to /dashboard instead of 500ing).
+2. `deploy/update.sh`: `git reset --hard` rewrites the script mid-run -> bash
+   ran a mangled old/new hybrid -> a root `php artisan` call kept re-creating
+   `storage/framework/views/livewire/` root-owned -> 500 on first hit to any
+   not-yet-compiled Livewire page (e.g. /deals/pipeline). Now: stage 1
+   (fetch+reset) `exec`s stage 2 from the fresh copy; all artisan runs as
+   www-data; chown + `chmod g+s` (setgid) at the very end.
+3. 5 pre-existing red tests fixed (CI was masking them behind the npm ci fail):
+   - `RestrictEditing`: save/submit-family now accepts module Create OR Edit
+     (component's own save() decides create-vs-update); `addmilestone`/
+     `addpayment` added to SELF_GATED_METHODS (self-gate on Projects.Edit;
+     generic 'add' prefix was demanding Projects.Create).
+   - `projects/show` mount: a Projects.View/Edit holder may open any project;
+     assigned-only restriction now only for users with NO Projects permission.
+   - `DesignationDashboardTest`: assert "Company-wide overview" (admin routes to
+     merged admin/CEO panel; `adminData()` with "Welcome back" is dead code).
+   Full suite: 193 passed, 0 failed. CI green.
+NOTE: `/assistant` 403 for role=staff is BY DESIGN (`abort_unless(role==='admin')`
+in ⚡agent.blade.php:17). User must log in as admin (test@example.com/password)
+for full access — staff seed accounts (*.agency.test) are deliberately limited.
+
+## Prior (2026-08-28 — prod 500 #2: livewire compile-dir perms) — DONE, verified
 Symptom: only /login loaded; correct creds -> 500 ("Service Unavailable") on
 /dashboard + every authed page. CAUSE: `storage/framework/views/livewire/` was
 `root:root 755` — created when I ran `php artisan tinker` render-sims AS ROOT
