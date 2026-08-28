@@ -33,7 +33,7 @@ class Task extends Model
 
     public function assignedTo()
     {
-        return $this->belongsTo(Staff::class, 'assigned_to');
+        return $this->belongsTo(staff::class, 'assigned_to');
     }
 
     public function createdBy()
@@ -153,11 +153,11 @@ class Task extends Model
     public function getRelatedModel()
     {
         if ($this->related_type === 'deal') {
-            return Deal::find($this->related_to);
+            return deal::find($this->related_to);
         } elseif ($this->related_type === 'contact') {
             return Contact::find($this->related_to);
         } elseif ($this->related_type === 'company') {
-            return Company::find($this->related_to);
+            return company::find($this->related_to);
         } elseif ($this->related_type === 'project') {
             return Project::find($this->related_to);
         }

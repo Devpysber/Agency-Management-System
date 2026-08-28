@@ -23,7 +23,7 @@ class deal extends Model
         'created_by',
     ];
     public function company(){
-        return $this->belongsTo(Company::class);
+        return $this->belongsTo(company::class);
     }
     public function contact(){
         return $this->belongsTo(Contact::class);
