@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Communication;
-use App\Models\Contact;
+use App\Models\contact;
 use App\Models\User;
 use App\Models\staff;
 use Illuminate\Database\Seeder;

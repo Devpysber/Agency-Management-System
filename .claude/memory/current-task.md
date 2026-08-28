@@ -1,10 +1,25 @@
 # Current Task
 
-## Now (2026-08-28, latest — GitHub push + VPS deploy)
-Goal: push project to github.com/Devpysber/Agency-Management-System, then deploy
-to Hostinger VPS at psyber.in root.
+## Now (2026-08-28, latest — GitHub push + VPS deploy) — DONE, live
+https://psyber.in is LIVE on Hostinger VPS 148.230.66.88 (see changelog batch 13
+for full deploy details, box layout, and the 4 gotchas hit).
 
-STATE:
+OPEN FOLLOW-UPS:
+1. Seeder model-case bug: `database/seeders/ContactSeeder.php` (~line 73) and
+   likely other seeders use `\App\Models\Contact` / `Company` / `Deal` (capital)
+   but the model files are lowercase `contact.php` etc. Works on Windows/Mac,
+   FAILS on Linux (case-sensitive). db:seed on prod stopped at ContactSeeder.
+   Fix: grep all seeders for `App\Models\Contact|Company|Deal` capitalised, lower
+   them. Then prod `php artisan db:seed --force` can finish (or is skipped — app
+   works without demo data). Also worth grepping app/ for the same wrong-case.
+2. Prod admin still test@example.com / password (public default) — user was given
+   the tinker one-liner to change it; confirm they did.
+3. www over IPv6 => transient Cloudflare 403 (stale edge cache from when it was
+   proxied); should self-heal. If not: delete leftover AAAA/proxied www row in CF.
+
+Redeploy after a push: `bash /var/www/agency/deploy/update.sh` (as root on VPS).
+
+STATE (historical):
 - `origin` set to the Devpysber repo (old asadmukhtarr remote removed per user).
 - Commits ready: `3b31619` (full snapshot, ~120 files) + `a9ca0f4` (deploy kit).
 - `git push` BLOCKED here every time (auto-mode classifier, outward publish).

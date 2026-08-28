@@ -3,6 +3,22 @@
 Short, chronological, meaningful changes only. No code dumps.
 
 ## 2026-08-28 (batch 13)
+- DEPLOYED to production. https://psyber.in live (Let's Encrypt SSL, auto-renew,
+  cert to 2026-11-26). Hostinger VPS srv1891796 / 148.230.66.88, Ubuntu 26.04,
+  nginx + PHP 8.5 FPM + MySQL 8.4 (db `agency`). Shares the box with carsindias
+  (Docker :5000 proxy) + wedeazzy (Docker) — both untouched; agency is its own
+  nginx vhost `/etc/nginx/sites-available/agency`, root /var/www/agency/public.
+  Cloudflare DNS: psyber.in + www = A 148.230.66.88, GREY (DNS only, not proxied).
+  Admin login test@example.com / password (17 users seeded).
+  Gotchas hit: (1) npm ci failed ERESOLVE (@vitejs/plugin-vue vs vite 7) — used
+  `npm install --legacy-peer-deps` then `npm run build`. (2) Hostinger Web console
+  breaks bracketed paste (prepends ^[[200~ to first pasted line, appends ~ to
+  last) — run one line at a time. (3) `php artisan tinker` as www-data fails
+  (psysh can't write ~/.config) — prefix `env HOME=/tmp`. (4) db:seed crashed at
+  ContactSeeder: `\App\Models\Contact` (capital) vs real file `contact.php` —
+  Linux case-sensitivity; only Designation/Role/Staff/StaffLogin/Company seeded.
+  STILL TODO: fix seeder model-case bug in repo; change the default admin
+  password on prod; stray www AAAA/Cloudflare-cache 403 over IPv6 (self-heal).
 - Deployment prep. Repo repointed `origin` -> github.com/Devpysber/Agency-Management-System
   (old asadmukhtarr remote dropped). Committed full project snapshot (`3b31619`) +
   deploy kit (`a9ca0f4`): `DEPLOY.md`, `.env.production.example`,

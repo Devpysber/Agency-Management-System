@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Company;
+use App\Models\company;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
 use App\Models\User;
