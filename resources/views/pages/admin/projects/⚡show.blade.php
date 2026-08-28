@@ -32,9 +32,14 @@ new class extends Component
         $this->projectId = $id;
         $this->project = Project::with(['company', 'createdBy', 'staff'])->findOrFail($id);
 
-        // Non-manager staff (regular staff / interns) may only open projects they're assigned to.
+        // Regular staff / interns with no Projects permission at all may only
+        // open projects they're assigned to. Anyone holding Projects.View or
+        // Projects.Edit (or admin) may open any project — write actions on this
+        // page are separately gated on Projects.Edit.
         $user = auth()->user();
-        if ($user && $user->role !== 'admin' && !(auth()->user()->role === 'admin' || auth()->user()->hasPermission('Projects', 'Edit'))) {
+        if ($user && $user->role !== 'admin'
+            && ! $user->hasPermission('Projects', 'View')
+            && ! $user->hasPermission('Projects', 'Edit')) {
             $myStaffId = staff::where('user_id', $user->id)->value('id');
             abort_unless($myStaffId && $this->project->staff->contains('id', $myStaffId), 403);
         }

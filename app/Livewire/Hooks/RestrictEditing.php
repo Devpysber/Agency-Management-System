@@ -61,6 +61,10 @@ class RestrictEditing extends ComponentHook
         // dynamically by designation, openThread()/send() are scoped to
         // the two participants), not a CRM record needing module.action.
         'send', 'openthread',
+        // projects/show sub-item forms: both already self-gate on
+        // Projects.Edit inside the method. Left to the generic 'add' prefix
+        // they'd be mapped to Projects.Create and block a Projects.Edit user.
+        'addmilestone', 'addpayment',
     ];
 
     /** Component-name second segment ("pages::admin.<this>.xxx") -> Roles & Permissions module. */
@@ -148,6 +152,15 @@ class RestrictEditing extends ComponentHook
         $module = self::MODULE_MAP[$prefix] ?? null;
         if (! $module) {
             return false;
+        }
+
+        // 'save'/'submit' forms serve BOTH create and update — the component's
+        // own method decides which (e.g. designations save() checks
+        // Staff.Create for a new row, Staff.Edit for an existing one). Accept
+        // either grant here so a Create-only role isn't blocked before that
+        // check runs.
+        if (in_array($method, ['save', 'store', 'submit', 'submitform', 'form_submit', 'storeform'], true)) {
+            return $user->hasPermission($module, 'Create') || $user->hasPermission($module, 'Edit');
         }
 
         $action = match (true) {

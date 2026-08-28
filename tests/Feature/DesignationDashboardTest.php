@@ -67,7 +67,8 @@ class DesignationDashboardTest extends TestCase
         $response = $this->actingAs($user)->get(route('dashboard'));
 
         $response->assertOk();
-        $response->assertSee('Welcome back');
+        // admin (no staff record) is routed to the merged admin/CEO panel.
+        $response->assertSee('Company-wide overview');
     }
 
     public function test_staff_without_recognized_designation_sees_generic_dashboard(): void
