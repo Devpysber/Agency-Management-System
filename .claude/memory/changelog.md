@@ -2,6 +2,66 @@
 
 Short, chronological, meaningful changes only. No code dumps.
 
+## 2026-08-28 (batch 15 — prod 500 #2: livewire compile-dir perms + CI)
+
+- Prod: only /login rendered; correct creds -> 500 on /dashboard + all authed
+  pages. CAUSE: `storage/framework/views/livewire/` went `root:root` because
+  batch-14 debugging ran `php artisan tinker` render-sims as ROOT. Livewire 4
+  compiles component classes there per request (Filesystem::replace -> tempnam);
+  www-data couldn't write -> PHP "file created in the system's temporary
+  directory" warning -> ErrorException -> 500. Fix: chown storage +
+  bootstrap/cache back to www-data, view:clear/cache as www-data.
+- `deploy/update.sh` rewritten (commit db57a34): every `php artisan` call now
+  `sudo -u www-data`; chown/chmod moved to the final step (after `artisan up`).
+  Prevents recurrence.
+- Created prod admin `test@example.com` / `password` (user id 1) at user's
+  request — must be changed.
+- CI "Tests" workflow: was red at `npm ci` (ERESOLVE). Fixed -> `npm ci
+  --legacy-peer-deps`; checkout@v5 + setup-node@v5 (commit e8e4ddd).
+- Discovered 5 PRE-EXISTING test failures (red since 3b31619, masked by the
+  npm ci failure). Confirmed via worktree @134cb52. Not fixed — separate task:
+  ProjectPermissionGapTest x3 (projects/show Livewire::test invalid-snapshot),
+  DesignationDashboardTest "admin without staff record" (stale assertSee),
+  PermissionMatrixTest "role granted staff create can save a designation".
+- Verified: 12 authed pages 200 via real HTTPS login flow, 0 web errors.
+
+## 2026-08-28 (batch 14 — prod 500 #1: model-name casing)
+
+- Prod (psyber.in) was throwing 500 on the CEO dashboard + contacts/estimates/
+  quotations/tasks pages: `Class "App\Models\Company" not found` (also Contact/
+  Staff/Deal) at runtime. ROOT CAUSE: legacy models `company`/`contact`/`deal`/
+  `staff` are declared lower-case (match file names); lots of code refs them
+  PascalCased (`Company::class`, `use App\Models\Contact`). Windows case-
+  insensitive FS hid it; Linux autoloader gets literal `App\Models\Company`,
+  misses the class-map (key is lower-case), PSR-4 miss, fatal. Distinct from the
+  batch-13 SEEDER fix — this is the runtime relation/blade path.
+- FIX (commit 30e8470, deployed): `bootstrap/legacy_models.php` — new file in
+  composer.json `autoload.files` — eager-`class_exists()` the 4 lower-case
+  classes at autoload-inclusion time, before any model ref. Once declared, every
+  casing resolves case-insensitively, no autoload call. This is the real fix.
+  Also (belt-and-suspenders / cleanliness): `deal.php`/`Estimate.php`/`Task.php`
+  PascalCase refs -> lower-case; `contact.php` `class Contact` -> `class contact`
+  (kills composer PSR-4 "Skipping" warning); AppServiceProvider morphMap
+  `Contact::class` -> `contact::class`.
+- DEAD ENDS TRIED (don't retry): (a) `class_alias('App\Models\Company', ...)` ->
+  fatal "Cannot redeclare class", broke `composer package:discover` during
+  deploy — PHP treats the lower-case class as already being that name. (b)
+  `spl_autoload_register` shim -> no-op: PHP's autoload recursion guard is
+  case-insensitive, so `class_exists('App\Models\company')` called from inside
+  the autoload of `App\Models\Company` is refused as a self-reference.
+- `deploy/update.sh` hardened: `php8.3-fpm` -> `php8.5-fpm` (real unit on box);
+  `npm ci` -> `npm ci --legacy-peer-deps`; a failed asset build no longer
+  aborts the deploy (had stranded the site in maintenance mode). Commits
+  efb5e0a, 41a0683, 81e348b, 453ec4e, 30e8470 — all pushed, VPS on 30e8470.
+- Verified on VPS: tinker relation loads (deal/estimate/quotation/task/comm all
+  eager-load company+contact+staff OK); authed HTTP-kernel sim as CEO ->
+  /dashboard /contacts/all /companies/all /tasks/all /deals/pipeline /estimates
+  /all /quotations/all all 200; public psyber.in / psyber.co / /login 200; log
+  cleared then re-hit -> 0 errors.
+- SSH to prod works from the dev box now: `ssh root@148.230.66.88` (key
+  ~/.ssh/id_ed25519). Redeploy: `ssh root@148.230.66.88 'cd /var/www/agency &&
+  bash deploy/update.sh'`.
+
 ## 2026-08-28 (batch 13)
 - DEPLOYED to production. https://psyber.in live (Let's Encrypt SSL, auto-renew,
   cert to 2026-11-26). Hostinger VPS srv1891796 / 148.230.66.88, Ubuntu 26.04,

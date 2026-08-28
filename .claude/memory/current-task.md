@@ -1,6 +1,45 @@
 # Current Task
 
-## Now (2026-08-28, latest — GitHub push + VPS deploy) — DONE, live
+## Now (2026-08-28, latest — prod 500 #2: livewire compile-dir perms) — DONE, verified
+Symptom: only /login loaded; correct creds -> 500 ("Service Unavailable") on
+/dashboard + every authed page. CAUSE: `storage/framework/views/livewire/` was
+`root:root 755` — created when I ran `php artisan tinker` render-sims AS ROOT
+while debugging prod-500 #1. Livewire 4 compiles component classes there per
+request via Filesystem::replace() -> tempnam(dir) -> www-data can't write ->
+PHP "file created in the system's temporary directory" warning -> Laravel
+promotes to ErrorException -> 500. /login barely uses Livewire so it stayed up.
+FIX: `chown -R www-data:www-data storage bootstrap/cache` + `chmod -R ug+rwX` +
+view:clear/view:cache as www-data. `deploy/update.sh` rewritten: ALL artisan
+calls now `sudo -u www-data`, chown/chmod moved to the very end (commit db57a34,
+deployed). LESSON: never run `php artisan` as root on the VPS without re-chowning
+— or use `sudo -u www-data php artisan ...`.
+Also: created prod admin `test@example.com` / `password` (user id 1, role admin)
+— user asked for it; TELL THEM TO CHANGE IT.
+Verified: 12 authed pages 200 via real HTTPS, 0 errors, livewire dir www-data.
+
+CI (GitHub Actions "Tests"): was red at `npm ci` (ERESOLVE vite7/plugin-vue5).
+Fixed -> `npm ci --legacy-peer-deps`, checkout/setup-node @v5 (commit e8e4ddd).
+BUT suite still has 5 PRE-EXISTING failures (red since 3b31619, hidden because
+CI never got past npm ci). Confirmed pre-existing via worktree @134cb52 —
+ProjectPermissionGapTest fails identically without my changes. The 5:
+- ProjectPermissionGapTest (x3): `Livewire::test('pages::admin.projects.show',
+  ['id'=>$p->id])` -> "Invalid Livewire snapshot structure" — projects/show
+  errors on mount for these role users (other page-component+id tests pass, so
+  it's projects/show-specific, not a Livewire API issue).
+- DesignationDashboardTest > "admin without staff record sees org wide dashboard"
+  — stale assertSee; admin dashboard reworked many batches since.
+- PermissionMatrixTest > "role granted staff create can save a designation".
+NOT YET FIXED — separate from the incident. Offer to fix as follow-up.
+
+## Prior (2026-08-28 — prod 500 #1: model-name casing) — DONE, live, verified
+psyber.in was 500ing (`Class "App\Models\Company" not found` etc). Fixed via
+`bootstrap/legacy_models.php` (composer files-autoload eager-loads the 4
+lower-case legacy models) + PascalCase->lower-case ref cleanup + `class Contact`
+-> `class contact`. VPS on commit 30e8470. See changelog batch 14 for the dead
+ends (class_alias, spl shim — don't retry).
+SSH now works from dev box: `ssh root@148.230.66.88` (key id_ed25519).
+
+## Prior (2026-08-28 — GitHub push + VPS deploy) — DONE, live
 https://psyber.in is LIVE on Hostinger VPS 148.230.66.88 (see changelog batch 13
 for full deploy details, box layout, and the 4 gotchas hit).
 
