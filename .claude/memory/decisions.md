@@ -46,3 +46,15 @@ of designation. `EditGate`/`RestrictEditing` (built earlier this session, see [[
 are stopgaps to retire in favor of real per-designation permission rows as each designation
 gets built out. See [[rbac-spec]] (docs/rbac-spec.md) for everything else — don't duplicate
 the spec text here, this entry is just the pointer.
+
+## 2026-08-28 — Production hosting: Hostinger VPS + keep Cloudflare DNS
+Deploy target = Hostinger VPS `srv1891796.hstgr.cloud` (plain Ubuntu, root SSH),
+Laravel served from `/var/www/agency/public` via nginx + PHP 8.3-FPM, DB = MySQL
+(`agency` db/user), queue = database + Supervisor `agency-worker`, scheduler via
+`www-data` cron. Domain `psyber.in` at the root.
+DECISION: DNS stays on **Cloudflare** (do NOT accept Hostinger's prompt to move
+nameservers to hermes/artemis.dns-parking.com). Point an A record for `psyber.in`
++ `www` at the VPS IP in Cloudflare; grey-cloud until certbot succeeds, then may
+proxy with SSL mode Full (strict). "Under Attack Mode" in Cloudflare must be OFF.
+Full runbook = `DEPLOY.md`; scripts = `deploy/`. Not Docker (Dockerfile in repo
+is unused for this path).

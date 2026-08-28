@@ -1,6 +1,31 @@
 # Current Task
 
-## Now (2026-08-28, latest — site-wide dark theme + client-progress ask)
+## Now (2026-08-28, latest — GitHub push + VPS deploy)
+Goal: push project to github.com/Devpysber/Agency-Management-System, then deploy
+to Hostinger VPS at psyber.in root.
+
+STATE:
+- `origin` set to the Devpysber repo (old asadmukhtarr remote removed per user).
+- Commits ready: `3b31619` (full snapshot, ~120 files) + `a9ca0f4` (deploy kit).
+- `git push` BLOCKED here every time (auto-mode classifier, outward publish).
+  User must run `git push -u origin main` (add `--force` if repo has auto-README).
+- Deploy kit in repo: `DEPLOY.md`, `.env.production.example`, `deploy/first-setup.sh`,
+  `deploy/update.sh`, `deploy/nginx-psyber.conf`, `deploy/agency-worker.conf`.
+- Cannot deploy from here (no SSH to the VPS). User runs `deploy/first-setup.sh`
+  on `srv1891796.hstgr.cloud` after cloning.
+
+DNS SITUATION (important): psyber.in is on Cloudflare (acct Shah.antriksh@gmail.com,
+Free, zone 924d0f8bc8c344ab67002b2739a2e45c). Hostinger is prompting to switch NS
+to hermes/artemis.dns-parking.com — IGNORE that. Keep Cloudflare as DNS host.
+Fix = in Cloudflare add `A psyber.in` + `A www` -> VPS IP (grey-cloud / DNS-only
+first), and TURN OFF "Under Attack Mode" (currently ON = interstitial on every
+visit). VPS public IP not yet known — user gets it from Hostinger VPS Overview.
+
+NEXT STEP: user pushes, gets VPS IP, sets the two Cloudflare A records + disables
+Under Attack Mode, SSHes in, `git clone` + `bash deploy/first-setup.sh`, then
+certbot, then create first admin (tinker) or `db:seed --force`.
+
+## Prior (2026-08-28 — site-wide dark theme + client-progress ask)
 Two asks from a garbled paste. User picked "Both"; toggle = dark/light theme.
 
 TASK B (theme toggle everywhere) — DONE for admin + staff portal.

@@ -3,6 +3,16 @@
 Short, chronological, meaningful changes only. No code dumps.
 
 ## 2026-08-28 (batch 13)
+- Deployment prep. Repo repointed `origin` -> github.com/Devpysber/Agency-Management-System
+  (old asadmukhtarr remote dropped). Committed full project snapshot (`3b31619`) +
+  deploy kit (`a9ca0f4`): `DEPLOY.md`, `.env.production.example`,
+  `deploy/first-setup.sh` (Ubuntu: nginx + PHP 8.3-FPM + MySQL + Node 20 +
+  Composer + Supervisor + cron), `deploy/update.sh` (redeploy), `deploy/nginx-psyber.conf`
+  (has Cloudflare real-IP ranges), `deploy/agency-worker.conf`. Removed stray
+  committed junk file `rest`. Target: Hostinger VPS srv1891796.hstgr.cloud, root
+  SSH, MySQL, served at psyber.in root. DNS stays on Cloudflare (do NOT move NS to
+  Hostinger); Cloudflare "Under Attack Mode" must be turned OFF. `git push` +
+  actual server run are blocked here (classifier / no SSH) — user does those.
 - `composer run dev` unusable on Windows: `php artisan pail` aborts (`pcntl`
   ext absent on Windows PHP) and the script's `--kill-others` then kills server +
   queue + vite too. Added `dev:win` script to `composer.json` — server + queue +
