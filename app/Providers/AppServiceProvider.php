@@ -13,6 +13,25 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Legacy models company/contact/deal/staff are declared lower-case
+        // (matching their file names). Scattered call sites still reference
+        // them PascalCased (Company::class, use App\Models\Contact, ...).
+        // Windows' case-insensitive filesystem hid this; on Linux the
+        // autoloader gets the literal "App\Models\Company" string, misses the
+        // class-map, falls back to PSR-4, looks for Company.php, and fatals
+        // with "Class not found" (500). Alias the PascalCase names to the real
+        // lower-case classes so every casing resolves on every platform.
+        foreach ([
+            'App\Models\Company' => \App\Models\company::class,
+            'App\Models\Contact' => \App\Models\contact::class,
+            'App\Models\Deal' => \App\Models\deal::class,
+            'App\Models\Staff' => \App\Models\staff::class,
+        ] as $alias => $real) {
+            if (! class_exists($alias, false)) {
+                class_alias($real, $alias);
+            }
+        }
+
         // Must happen in register(), not boot(): Livewire's own service
         // provider calls ComponentHookRegistry::boot() during ITS boot()
         // phase, which snapshots whatever hooks are registered at that
@@ -38,7 +57,7 @@ class AppServiceProvider extends ServiceProvider
         // "deal"/"contact"/"company"/"project" and fails.
         Relation::morphMap([
             'deal' => \App\Models\deal::class,
-            'contact' => \App\Models\Contact::class,
+            'contact' => \App\Models\contact::class,
             'company' => \App\Models\company::class,
             'project' => \App\Models\Project::class,
         ]);

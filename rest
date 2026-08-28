@@ -1,0 +1,7 @@
+
+Synced. Everything's done:
+
+- https://psyber.in live, SSL, full demo data
+- VPS git tree = 134cb52 (current)
+- carsindias / wedeazzy untouched
+- Redeploy later: bash /var/www/agency/deploy/update.sh
