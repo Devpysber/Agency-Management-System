@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -20,7 +20,7 @@ jobs:
           coverage: none
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
@@ -32,7 +32,8 @@ jobs:
         run: composer install --prefer-dist --no-progress --no-interaction
 
       - name: Install Node dependencies
-        run: npm ci
+        # --legacy-peer-deps: vite 7 vs @vitejs/plugin-vue 5 peer range conflict.
+        run: npm ci --legacy-peer-deps
 
       - name: Build front-end assets
         # Every page renders through @vite(...); without a built
