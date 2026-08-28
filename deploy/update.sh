@@ -4,7 +4,16 @@
 set -euo pipefail
 cd /var/www/agency
 
-php artisan down --render="errors::503" || true
+# The web server runs as www-data. Every `php artisan` call that writes into
+# storage/ or bootstrap/cache/ MUST run as www-data too — a single root-owned
+# file under storage/framework/views/livewire/ makes Livewire's runtime class
+# compilation fail with "tempnam(): file created in the system's temporary
+# directory" -> 500 on every authenticated page. So: run artisan as www-data,
+# and still chown as a safety net at the very end.
+WWW=www-data
+art() { sudo -u "$WWW" php artisan "$@"; }
+
+art down --render="errors::503" || true
 
 git fetch --all
 git reset --hard origin/main
@@ -16,18 +25,20 @@ composer install --no-dev --optimize-autoloader --no-interaction
 # mode — the previously built public/build assets stay serviceable.
 ( npm ci --legacy-peer-deps && npm run build ) || echo "WARN: asset build failed, keeping existing public/build"
 
-php artisan migrate --force
+art migrate --force
 
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan event:cache || true
-
-chown -R www-data:www-data storage bootstrap/cache
-chmod -R ug+rwX storage bootstrap/cache
+art config:cache
+art route:cache
+art view:cache
+art event:cache || true
 
 supervisorctl restart agency-worker:* || true
 systemctl reload php8.5-fpm || systemctl reload 'php*-fpm' || true
 
-php artisan up
+art up
+
+# Safety net: anything that slipped through as root gets handed back.
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R ug+rwX storage bootstrap/cache
+
 echo "==> update complete"
