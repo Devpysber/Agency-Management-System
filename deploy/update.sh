@@ -4,19 +4,29 @@
 set -euo pipefail
 cd /var/www/agency
 
+# --- Stage 1: fast-forward the working tree, then re-exec the fresh script ----
+# `git reset --hard` rewrites THIS file mid-run; bash keeps reading the old
+# file descriptor by byte offset and executes a mangled hybrid. So do only the
+# pull here, then hand off to the updated copy (guarded by a flag so we do it
+# once).
+if [ -z "${DEPLOY_REEXEC:-}" ]; then
+    git fetch --all
+    git reset --hard origin/main
+    exec env DEPLOY_REEXEC=1 bash deploy/update.sh "$@"
+fi
+
+# --- Stage 2: the actual deploy (running from the just-pulled script) --------
+
 # The web server runs as www-data. Every `php artisan` call that writes into
-# storage/ or bootstrap/cache/ MUST run as www-data too — a single root-owned
-# file under storage/framework/views/livewire/ makes Livewire's runtime class
-# compilation fail with "tempnam(): file created in the system's temporary
-# directory" -> 500 on every authenticated page. So: run artisan as www-data,
-# and still chown as a safety net at the very end.
+# storage/ or bootstrap/cache/ MUST run as www-data — a single root-owned file
+# under storage/framework/views/livewire/ makes Livewire's runtime class
+# compiler fail with "tempnam(): file created in the system's temporary
+# directory" -> 500 on the affected page. Run artisan as www-data; chown at the
+# very end as a safety net.
 WWW=www-data
 art() { sudo -u "$WWW" php artisan "$@"; }
 
 art down --render="errors::503" || true
-
-git fetch --all
-git reset --hard origin/main
 
 composer install --no-dev --optimize-autoloader --no-interaction
 
@@ -37,8 +47,10 @@ systemctl reload php8.5-fpm || systemctl reload 'php*-fpm' || true
 
 art up
 
-# Safety net: anything that slipped through as root gets handed back.
+# Safety net: everything above ran as www-data, but re-assert ownership and
+# setgid so nothing can be left root-owned or group-unwritable.
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R ug+rwX storage bootstrap/cache
+find storage bootstrap/cache -type d -exec chmod g+s {} +
 
 echo "==> update complete"
