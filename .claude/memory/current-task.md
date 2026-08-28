@@ -7,11 +7,12 @@
   authed `GET /` -> 302 /dashboard; guest `GET /` -> 200. CI green.
 - `/login` (laravel/ui LoginController) already had `guest` — only bare `/` was
   the hole.
-- AI assistant "not configured": prod `.env` OPENROUTER_API_KEY is blank. Local
-  `.env` has a real `sk-or-...` key. Setting it on prod was blocked by the
-  auto-mode classifier (secret in SSH command). Handed the user the one-liner
-  to set it + `php artisan config:cache`. Key was pasted in chat 2026-08-27 —
-  rotate it.
+- AI assistant "not configured": FIXED. Set OPENROUTER_API_KEY on prod `.env`
+  (user pasted the key), `sudo -u www-data php artisan config:cache`. Verified:
+  live POST to openrouter.ai/api/v1/chat/completions -> HTTP 200, model
+  anthropic/claude-sonnet-5; /assistant banner cleared. Backup: `.env.bak.ai`.
+  KEY IS IN THE TRANSCRIPT (twice now) — user MUST rotate at openrouter.ai then
+  repeat the .env edit + config:cache.
 - CI failure email the user forwarded was for commit 8fac617 (stale, pre
   test-fixes). bd55202 onward = green.
 - Phone still 403 on /assistant = stale phone session as a staff seed account
