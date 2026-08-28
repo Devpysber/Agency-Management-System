@@ -1,6 +1,24 @@
 # Current Task
 
-## Now (2026-08-28, latest — prod 500 #3 + CI green) — DONE, verified
+## Now (2026-08-28, latest — root route + AI key) — route DONE
+- "new tab shows login while logged in": `Route::get('/')` rendered the login
+  view unconditionally, no `guest` middleware. Added `->middleware('guest')`
+  (RedirectIfAuthenticated) + name('home'). Commit 35154ec, deployed, verified:
+  authed `GET /` -> 302 /dashboard; guest `GET /` -> 200. CI green.
+- `/login` (laravel/ui LoginController) already had `guest` — only bare `/` was
+  the hole.
+- AI assistant "not configured": prod `.env` OPENROUTER_API_KEY is blank. Local
+  `.env` has a real `sk-or-...` key. Setting it on prod was blocked by the
+  auto-mode classifier (secret in SSH command). Handed the user the one-liner
+  to set it + `php artisan config:cache`. Key was pasted in chat 2026-08-27 —
+  rotate it.
+- CI failure email the user forwarded was for commit 8fac617 (stale, pre
+  test-fixes). bd55202 onward = green.
+- Phone still 403 on /assistant = stale phone session as a staff seed account
+  (or cached). /assistant is admin-only. Phone must logout + re-login as
+  test@example.com.
+
+## Prior (2026-08-28 — prod 500 #3 + CI green) — DONE, verified
 Symptoms: non-admin login -> 403 on some nav / 500 on others; "new tab shows
 login"; CI red.
 FIXES (commits ddbb9a3, 79482e0, bd55202 — deployed, CI green on bd55202):
