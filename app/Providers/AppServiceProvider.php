@@ -13,28 +13,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Legacy models company/contact/deal/staff are declared lower-case
-        // (matching their file names). Scattered call sites still reference
-        // them PascalCased (Company::class, use App\Models\Contact, ...).
-        // Windows' case-insensitive filesystem hid this; on Linux the
-        // autoloader gets the literal "App\Models\Company", misses the
-        // class-map, falls back to PSR-4, looks for Company.php, and fatals
-        // with "Class not found" (500). Register a fallback autoloader: when
-        // asked for a PascalCase legacy name, load the real lower-case file —
-        // PHP then matches the requested name case-insensitively. (class_alias
-        // can't be used here: the lower-case class IS the PascalCase name to
-        // PHP, so aliasing fatals with "cannot redeclare".)
-        spl_autoload_register(static function (string $class): void {
-            static $legacy = [
-                'App\Models\Company' => 'App\Models\company',
-                'App\Models\Contact' => 'App\Models\contact',
-                'App\Models\Deal' => 'App\Models\deal',
-                'App\Models\Staff' => 'App\Models\staff',
-            ];
-            if (isset($legacy[$class])) {
-                class_exists($legacy[$class]);
-            }
-        });
+        // NOTE: the case-insensitive-model-name compatibility shim lives in
+        // bootstrap/legacy_models.php (composer "files" autoload) — it must run
+        // before any model reference, which a service provider cannot.
 
         // Must happen in register(), not boot(): Livewire's own service
         // provider calls ComponentHookRegistry::boot() during ITS boot()
