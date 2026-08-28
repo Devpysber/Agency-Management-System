@@ -1,9 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-Route::get('/',function(){
+// `guest` (App\Http\Middleware\RedirectIfAuthenticated) bounces an already
+// signed-in user to their dashboard — otherwise opening the site root in a new
+// tab shows the login page to someone who is already logged in.
+Route::get('/', function () {
     return view('auth.login');
-});
+})->middleware('guest')->name('home');
 // ==================== STAFF PORTAL ====================
 // Single shared panel for any non-admin (staff) login.
 Route::middleware(['auth', 'client.scope'])->group(function () {
