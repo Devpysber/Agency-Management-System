@@ -5,17 +5,17 @@ https://psyber.in is LIVE on Hostinger VPS 148.230.66.88 (see changelog batch 13
 for full deploy details, box layout, and the 4 gotchas hit).
 
 OPEN FOLLOW-UPS:
-1. Seeder model-case bug: `database/seeders/ContactSeeder.php` (~line 73) and
-   likely other seeders use `\App\Models\Contact` / `Company` / `Deal` (capital)
-   but the model files are lowercase `contact.php` etc. Works on Windows/Mac,
-   FAILS on Linux (case-sensitive). db:seed on prod stopped at ContactSeeder.
-   Fix: grep all seeders for `App\Models\Contact|Company|Deal` capitalised, lower
-   them. Then prod `php artisan db:seed --force` can finish (or is skipped — app
-   works without demo data). Also worth grepping app/ for the same wrong-case.
-2. Prod admin still test@example.com / password (public default) — user was given
-   the tinker one-liner to change it; confirm they did.
+1. DONE (commit dc28517, deployed): seeder model-case bug. 5 seeders had
+   `use App\Models\Contact;` / `Company;` (capital) -> file is `contact.php` etc,
+   breaks Linux case-sensitive autoload. Fixed to lowercase `use` line (body
+   `Contact::` untouched — PHP resolves use-aliases + class names case-insensitively
+   once the file loads). Files: Contact/Deal/Communication/Quotation/Estimate
+   Seeder. App code (app/) was already clean. Prod re-seeded via
+   `migrate:fresh --seed` — all 25 seeders green, full demo data loaded.
+2. DONE: prod admin password changed off the public default (user set their own).
 3. www over IPv6 => transient Cloudflare 403 (stale edge cache from when it was
-   proxied); should self-heal. If not: delete leftover AAAA/proxied www row in CF.
+   proxied); self-heals. If not: delete leftover AAAA/proxied www row in CF.
+   (Low priority — apex + www-over-IPv4 both 200.)
 
 Redeploy after a push: `bash /var/www/agency/deploy/update.sh` (as root on VPS).
 
