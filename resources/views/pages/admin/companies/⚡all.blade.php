@@ -1,11 +1,13 @@
 <?php
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use App\Models\Company;
 
 new class extends Component
 {
-    public $companies;
+    use WithPagination;
+
     public $search = '';
     public $industry = '';
     public $status = '';
@@ -15,12 +17,7 @@ new class extends Component
     public $selectedCompanies = [];
     public $selectAll = false;
 
-    public function mount()
-    {
-        $this->fetchCompanies();
-    }
-
-    public function fetchCompanies()
+    protected function fetchCompanies()
     {
         $query = Company::query();
 
@@ -73,38 +70,38 @@ new class extends Component
                 $query->orderBy('company_name', 'asc');
         }
 
-        $this->companies = $query->get();
+        return $query;
     }
 
     public function updatedSearch()
     {
-        $this->fetchCompanies();
+        $this->resetPage();
     }
 
     public function updatedIndustry()
     {
-        $this->fetchCompanies();
+        $this->resetPage();
     }
 
     public function updatedStatus()
     {
-        $this->fetchCompanies();
+        $this->resetPage();
     }
 
     public function updatedRating()
     {
-        $this->fetchCompanies();
+        $this->resetPage();
     }
 
     public function updatedSortBy()
     {
-        $this->fetchCompanies();
+        $this->resetPage();
     }
 
     public function updatedSelectAll($value)
     {
         if ($value) {
-            $this->selectedCompanies = $this->companies->pluck('id')->toArray();
+            $this->selectedCompanies = $this->fetchCompanies()->paginate(15)->pluck('id')->toArray();
         } else {
             $this->selectedCompanies = [];
         }
@@ -112,10 +109,14 @@ new class extends Component
 
     public function delete($id)
     {
+        if (!auth()->user()->hasPermission('Companies', 'Delete')) {
+            session()->flash('error', "You don't have permission to delete companies.");
+            return;
+        }
+
         try {
             Company::findOrFail($id)->delete();
             session()->flash('success', 'Company deleted successfully!');
-            $this->fetchCompanies();
             $this->selectedCompanies = array_diff($this->selectedCompanies, [$id]);
         } catch (\Exception $e) {
             session()->flash('error', 'Error deleting company: ' . $e->getMessage());
@@ -124,6 +125,11 @@ new class extends Component
 
     public function deleteSelected()
     {
+        if (!auth()->user()->hasPermission('Companies', 'Delete')) {
+            session()->flash('error', "You don't have permission to delete companies.");
+            return;
+        }
+
         if (empty($this->selectedCompanies)) {
             session()->flash('warning', 'Please select at least one company to delete.');
             return;
@@ -134,7 +140,6 @@ new class extends Component
             session()->flash('success', count($this->selectedCompanies) . ' companies deleted successfully!');
             $this->selectedCompanies = [];
             $this->selectAll = false;
-            $this->fetchCompanies();
         } catch (\Exception $e) {
             session()->flash('error', 'Error deleting companies: ' . $e->getMessage());
         }
@@ -147,25 +152,25 @@ new class extends Component
         $this->status = '';
         $this->rating = '';
         $this->sortBy = 'name_asc';
-        $this->fetchCompanies();
+        $this->resetPage();
     }
 
     public function getStatusCounts()
     {
         return [
             'total' => Company::count(),
-            'active' => Company::where('status', 0)->count(),
-            'pending' => Company::where('status', 1)->count(),
-            'inactive' => Company::where('status', 2)->count(),
+            'active' => Company::where('status', 'active')->count(),
+            'pending' => Company::where('status', 'pending')->count(),
+            'inactive' => Company::whereIn('status', ['inactive', 'suspended'])->count(),
         ];
     }
 
     public function render()
     {
-        $stats = $this->getStatusCounts();
         return $this->view([
-            'stats' => $stats
-        ]);
+            'companies' => $this->fetchCompanies()->paginate(15),
+            'stats' => $this->getStatusCounts(),
+        ])->layout('layouts.app');
     }
 };
 ?>
@@ -181,12 +186,14 @@ new class extends Component
                 <button class="btn btn-secondary" wire:click="export">
                     <i class="fas fa-file-export"></i> Export
                 </button>
-                <button class="btn btn-secondary" wire:click="import">
-                    <i class="fas fa-file-import"></i> Import
-                </button>
-                <a href="{{ route('companies.add') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Add New Company
-                </a>
+                @if ((auth()->user()->role === 'admin' || auth()->user()->hasPermission('Companies', 'Edit')))
+                    <button class="btn btn-secondary" wire:click="import">
+                        <i class="fas fa-file-import"></i> Import
+                    </button>
+                    <a href="{{ route('companies.add') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add New Company
+                    </a>
+                @endif
             </div>
         </div>
 
@@ -262,9 +269,10 @@ new class extends Component
                         </label>
                         <select class="form-select" wire:model.live="status">
                             <option value="">All Status</option>
-                            <option value="0">🟢 Active</option>
-                            <option value="1">🟡 Pending</option>
-                            <option value="2">🔴 Inactive</option>
+                            <option value="active">🟢 Active</option>
+                            <option value="pending">🟡 Pending</option>
+                            <option value="inactive">🔴 Inactive</option>
+                            <option value="suspended">⚫ Suspended</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -378,7 +386,7 @@ new class extends Component
                     Companies List
                 </h3>
                 <div>
-                    <span class="badge bg-primary me-2">{{ $companies->count() }} Companies</span>
+                    <span class="badge bg-primary me-2">{{ $companies->total() }} Companies</span>
                     <button class="btn btn-sm btn-outline-secondary" wire:click="fetchCompanies">
                         <i class="fas fa-sync-alt"></i>
                     </button>
@@ -427,12 +435,12 @@ new class extends Component
                                     <span class="badge bg-secondary">{{ $company->company_industry ?? 'N/A' }}</span>
                                 </td>
                                 <td>
-                                    @if($company->status == 0)
+                                    @if($company->status === 'active')
                                         <span class="badge bg-success">
                                             <i class="fas fa-circle me-1" style="font-size: 8px;"></i>
                                             Active
                                         </span>
-                                    @elseif($company->status == 1)
+                                    @elseif($company->status === 'pending')
                                         <span class="badge bg-warning text-dark">
                                             <i class="fas fa-circle me-1" style="font-size: 8px;"></i>
                                             Pending
@@ -474,14 +482,16 @@ new class extends Component
                                         <a href="{{ route('companies.show', $company->id) }}" class="btn btn-outline-primary">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('companies.edit', $company->id) }}" class="btn btn-outline-secondary">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <button class="btn btn-outline-danger" 
-                                                wire:click="delete({{ $company->id }})" 
-                                                wire:confirm="Are you sure you want to delete this company?">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        @if ((auth()->user()->role === 'admin' || auth()->user()->hasPermission('Companies', 'Edit')))
+                                            <a href="{{ route('companies.edit', $company->id) }}" class="btn btn-outline-secondary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger"
+                                                    wire:click="delete({{ $company->id }})"
+                                                    wire:confirm="Are you sure you want to delete this company?">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -502,22 +512,41 @@ new class extends Component
                 </div>
             </div>
             <div class="card-footer">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
                         <span class="text-muted">
-                            Showing {{ $companies->count() }} company(s)
+                            Showing {{ $companies->firstItem() ?? 0 }}-{{ $companies->lastItem() ?? 0 }} of {{ $companies->total() }}
                             @if($search || $industry || $status !== '' || $rating)
                                 <span class="text-muted">(filtered)</span>
                             @endif
                         </span>
-                    </div>
-                    <div>
                         @if($search || $industry || $status !== '' || $rating)
-                            <button class="btn btn-sm btn-outline-secondary" wire:click="resetFilters">
+                            <button class="btn btn-sm btn-outline-secondary ms-2" wire:click="resetFilters">
                                 <i class="fas fa-undo"></i> Clear Filters
                             </button>
                         @endif
                     </div>
+                    @if($companies->hasPages())
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item {{ $companies->onFirstPage() ? 'disabled' : '' }}">
+                                <button class="page-link" wire:click="previousPage" @if($companies->onFirstPage()) disabled @endif>
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                            </li>
+                            @for ($page = max(1, $companies->currentPage() - 2); $page <= min($companies->lastPage(), $companies->currentPage() + 2); $page++)
+                                <li class="page-item {{ $page == $companies->currentPage() ? 'active' : '' }}">
+                                    <button class="page-link" wire:click="gotoPage({{ $page }})">{{ $page }}</button>
+                                </li>
+                            @endfor
+                            <li class="page-item {{ !$companies->hasMorePages() ? 'disabled' : '' }}">
+                                <button class="page-link" wire:click="nextPage" @if(!$companies->hasMorePages()) disabled @endif>
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                    @endif
                 </div>
             </div>
         </div>

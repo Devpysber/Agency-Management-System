@@ -1,13 +1,448 @@
 <?php
 
 use Livewire\Component;
+use Livewire\WithPagination;
+use App\Models\Communication;
+use App\Models\Contact;
+use App\Models\staff;
 
 new class extends Component
 {
-    //
+    use WithPagination;
+
+    public $commId;
+    public $subject;
+    public $direction = 'outbound';
+    public $notes;
+    public $status = 'completed';
+    public $occurred_at;
+    public $contact_id;
+    public $staff_id;
+
+    public $search = '';
+    public $filterStatus = '';
+    public $showModal = false;
+
+    protected $rules = [
+        'subject' => 'required|string|max:255',
+        'direction' => 'required|in:inbound,outbound',
+        'notes' => 'nullable|string',
+        'status' => 'required|in:scheduled,completed,cancelled',
+        'occurred_at' => 'required|date',
+        'contact_id' => 'nullable|exists:contacts,id',
+        'staff_id' => 'nullable|exists:staff,id',
+    ];
+
+    /** See calls.blade.php's scopeCommunicationsVisibility for the full
+     * rationale — same rule, duplicated per this codebase's existing
+     * per-type (calls/emails/meetings) component split. */
+    protected function scopeCommunicationsVisibility($query)
+    {
+        $user = auth()->user();
+        if ($user->role === 'admin' || $user->hasPermission('Reports', 'View') || $user->hasPermission('Deals', 'Assign')) {
+            return;
+        }
+
+        $myStaffId = staff::where('user_id', $user->id)->value('id');
+
+        $companyIds = collect();
+        if ($myStaffId) {
+            $companyIds = $companyIds->merge(
+                Contact::where('assigned_to', $myStaffId)->pluck('company_id')
+            );
+            $companyIds = $companyIds->merge(
+                \App\Models\Project::whereHas('staff', fn ($q) => $q->where('staff.id', $myStaffId))->pluck('company_id')
+            );
+        }
+        $companyIds = $companyIds->filter()->unique();
+
+        $query->where(function ($q) use ($myStaffId, $companyIds) {
+            $q->where('staff_id', $myStaffId)->orWhere('created_by', auth()->id());
+            if ($companyIds->isNotEmpty()) {
+                $q->orWhereIn('company_id', $companyIds);
+            }
+        });
+    }
+
+    protected function baseQuery()
+    {
+        $query = Communication::type('email')->with(['contact', 'staff']);
+        $this->scopeCommunicationsVisibility($query);
+
+        if (!empty($this->search)) {
+            $query->search($this->search);
+        }
+
+        if (!empty($this->filterStatus)) {
+            $query->byStatus($this->filterStatus);
+        }
+
+        return $query->orderBy('occurred_at', 'desc');
+    }
+
+    public function updatedSearch() { $this->resetPage(); }
+    public function updatedFilterStatus() { $this->resetPage(); }
+
+    public function resetFilters()
+    {
+        $this->search = '';
+        $this->filterStatus = '';
+        $this->resetPage();
+    }
+
+    public function openAddModal()
+    {
+        $this->resetForm();
+        $this->showModal = true;
+    }
+
+    public function resetForm()
+    {
+        $this->commId = null;
+        $this->subject = null;
+        $this->direction = 'outbound';
+        $this->notes = null;
+        $this->status = 'completed';
+        $this->occurred_at = now()->format('Y-m-d\TH:i');
+        $this->contact_id = null;
+        $this->staff_id = null;
+        $this->resetErrorBag();
+    }
+
+    public function canManage(Communication $item): bool
+    {
+        return $item->created_by === auth()->id()
+            || auth()->user()->role === 'admin'
+            || (auth()->user()->role === 'admin' || auth()->user()->hasPermission('Communications', 'Edit'));
+    }
+
+    public function save()
+    {
+        $this->validate();
+
+        if ($this->commId) {
+            $existing = Communication::findOrFail($this->commId);
+            abort_unless($this->canManage($existing), 403);
+        }
+
+        $item = $this->commId ? Communication::find($this->commId) : new Communication;
+        $item->type = 'email';
+        $item->subject = $this->subject;
+        $item->direction = $this->direction;
+        $item->notes = $this->notes;
+        $item->status = $this->status;
+        $item->occurred_at = $this->occurred_at;
+        $item->contact_id = $this->contact_id ?: null;
+        $item->staff_id = $this->staff_id ?: null;
+        if (!$this->commId) {
+            $item->created_by = auth()->id();
+        }
+        $item->save();
+
+        session()->flash('success', 'Email logged successfully!');
+        $this->showModal = false;
+        $this->resetForm();
+    }
+
+    public function edit($id)
+    {
+        $item = Communication::findOrFail($id);
+        abort_unless($this->canManage($item), 403);
+        $this->commId = $item->id;
+        $this->subject = $item->subject;
+        $this->direction = $item->direction;
+        $this->notes = $item->notes;
+        $this->status = $item->status;
+        $this->occurred_at = optional($item->occurred_at)->format('Y-m-d\TH:i');
+        $this->contact_id = $item->contact_id;
+        $this->staff_id = $item->staff_id;
+        $this->showModal = true;
+    }
+
+    public function delete($id)
+    {
+        $item = Communication::findOrFail($id);
+        abort_unless($this->canManage($item), 403);
+        try {
+            $item->delete();
+            session()->flash('success', 'Email deleted successfully!');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error deleting email: ' . $e->getMessage());
+        }
+    }
+
+    public function closeModal()
+    {
+        $this->showModal = false;
+        $this->resetForm();
+    }
+
+    public function render()
+    {
+        // Sent/Received must be scoped the same as the list itself — was a
+        // separate unscoped query, so "Total 0" could sit next to "Sent 1"
+        // once view-scoping landed (counting company-wide while the list
+        // and Total counted only what this viewer can see).
+        $sentQuery = Communication::type('email')->where('direction', 'outbound');
+        $this->scopeCommunicationsVisibility($sentQuery);
+        $receivedQuery = Communication::type('email')->where('direction', 'inbound');
+        $this->scopeCommunicationsVisibility($receivedQuery);
+
+        return $this->view([
+            'items' => $this->baseQuery()->paginate(15),
+            'contacts' => Contact::orderBy('first_name')->get(),
+            'staffMembers' => staff::orderBy('name')->get(),
+            'sentCount' => $sentQuery->count(),
+            'receivedCount' => $receivedQuery->count(),
+        ])->layout('layouts.app');
+    }
 };
 ?>
-
 <div>
-    {{-- Because you are alive, everything is possible. - Thich Nhat Hanh --}}
+    <div class="dashboard">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div>
+                <h1>Emails</h1>
+                <p>Track email correspondence with contacts and clients.</p>
+            </div>
+            <div class="header-actions">
+                @if ((auth()->user()->role === 'admin' || auth()->user()->hasPermission('Communications', 'Edit')))
+                    <button class="btn btn-primary" wire:click="openAddModal">
+                        <i class="fas fa-plus"></i> Log Email
+                    </button>
+                @endif
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        @if (session()->has('success'))
+            <div class="alert-flash alert-flash-success">
+                <i class="fas fa-check-circle"></i>
+                {{ session('success') }}
+                <button class="alert-flash-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+            </div>
+        @endif
+        @if (session()->has('error'))
+            <div class="alert-flash alert-flash-error">
+                <i class="fas fa-exclamation-circle"></i>
+                {{ session('error') }}
+                <button class="alert-flash-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+            </div>
+        @endif
+
+        <!-- Stats -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fas fa-envelope"></i></div>
+                    <div class="stat-info"><h3>Total</h3><p class="stat-number">{{ $items->total() }}</p></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fas fa-paper-plane"></i></div>
+                    <div class="stat-info"><h3>Sent</h3><p class="stat-number">{{ $sentCount }}</p></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-icon purple"><i class="fas fa-inbox"></i></div>
+                    <div class="stat-info"><h3>Received</h3><p class="stat-number">{{ $receivedCount }}</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium">Search</label>
+                        <input type="text" class="form-control" wire:model.live="search" placeholder="Search subject or notes...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-medium">Status</label>
+                        <select class="form-select" wire:model.live="filterStatus">
+                            <option value="">All Status</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-secondary w-100" wire:click="resetFilters"><i class="fas fa-undo"></i> Reset</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-envelope me-2"></i> Email Log</h3>
+                <span class="badge bg-primary">{{ $items->total() }} Emails</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Subject</th>
+                                <th>Direction</th>
+                                <th>Contact</th>
+                                <th>Handled By</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th style="width: 130px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($items as $item)
+                            <tr>
+                                <td>
+                                    <h6 class="mb-0 fw-semibold">{{ $item->subject }}</h6>
+                                    @if($item->notes)
+                                        <small class="text-muted">{{ \Illuminate\Support\Str::limit($item->notes, 40) }}</small>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($item->direction === 'inbound')
+                                        <span class="badge bg-info"><i class="fas fa-arrow-down"></i> Inbound</span>
+                                    @else
+                                        <span class="badge bg-primary"><i class="fas fa-arrow-up"></i> Outbound</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($item->contact)
+                                        <span class="badge bg-secondary">{{ $item->contact->first_name }} {{ $item->contact->last_name }}</span>
+                                    @else
+                                        <span class="text-muted">N/A</span>
+                                    @endif
+                                </td>
+                                <td>{{ $item->staff->name ?? '—' }}</td>
+                                <td><small class="text-muted">{{ $item->occurred_at->format('M d, Y H:i') }}</small></td>
+                                <td><span class="badge {{ $item->status_badge['class'] }}">{{ ucfirst($item->status) }}</span></td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        @if ((auth()->user()->role === 'admin' || auth()->user()->hasPermission('Communications', 'Edit')) || $this->canManage($item))
+                                            <button class="btn btn-outline-secondary" wire:click="edit({{ $item->id }})"><i class="fas fa-edit"></i></button>
+                                            <button class="btn btn-outline-danger" wire:click="delete({{ $item->id }})" wire:confirm="Delete this email log?"><i class="fas fa-trash"></i></button>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <i class="fas fa-envelope fa-3x text-muted mb-3 d-block"></i>
+                                    <h5 class="text-muted">No emails logged</h5>
+                                    <p class="text-muted">Log your first email to start tracking correspondence.</p>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @if($items->hasPages())
+            <div class="card-footer">
+                <div class="d-flex justify-content-end">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item {{ $items->onFirstPage() ? 'disabled' : '' }}">
+                                <button class="page-link" wire:click="previousPage" @if($items->onFirstPage()) disabled @endif>
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                            </li>
+                            @for ($page = max(1, $items->currentPage() - 2); $page <= min($items->lastPage(), $items->currentPage() + 2); $page++)
+                                <li class="page-item {{ $page == $items->currentPage() ? 'active' : '' }}">
+                                    <button class="page-link" wire:click="gotoPage({{ $page }})">{{ $page }}</button>
+                                </li>
+                            @endfor
+                            <li class="page-item {{ !$items->hasMorePages() ? 'disabled' : '' }}">
+                                <button class="page-link" wire:click="nextPage" @if(!$items->hasMorePages()) disabled @endif>
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            @endif
+        </div>
+    </div>
+
+    <!-- Add / Edit Modal -->
+    @if($showModal)
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-envelope text-primary me-2"></i>{{ $commId ? 'Edit Email' : 'Log Email' }}</h5>
+                    <button type="button" class="btn-close" wire:click="closeModal"></button>
+                </div>
+                <div class="modal-body">
+                    <form wire:submit.prevent="save">
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Subject <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control @error('subject') is-invalid @enderror" wire:model="subject" placeholder="Email subject">
+                            @error('subject') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Direction</label>
+                                <select class="form-select" wire:model="direction">
+                                    <option value="outbound">Outbound (Sent)</option>
+                                    <option value="inbound">Inbound (Received)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Status</label>
+                                <select class="form-select" wire:model="status">
+                                    <option value="scheduled">Scheduled</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Date <span class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control @error('occurred_at') is-invalid @enderror" wire:model="occurred_at">
+                                @error('occurred_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Contact</label>
+                                <select class="form-select" wire:model="contact_id">
+                                    <option value="">None</option>
+                                    @foreach ($contacts as $contact)
+                                        <option value="{{ $contact->id }}">{{ $contact->first_name }} {{ $contact->last_name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Handled By</label>
+                                <select class="form-select" wire:model="staff_id">
+                                    <option value="">Unassigned</option>
+                                    @foreach ($staffMembers as $member)
+                                        <option value="{{ $member->id }}">{{ $member->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium">Notes</label>
+                                <textarea class="form-control" wire:model="notes" rows="3" placeholder="Optional notes"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" wire:click="closeModal"><i class="fas fa-times"></i> Cancel</button>
+                    <button class="btn btn-primary" wire:click="save">
+                        <i class="fas {{ $commId ? 'fa-save' : 'fa-plus' }}"></i> {{ $commId ? 'Update' : 'Log Email' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

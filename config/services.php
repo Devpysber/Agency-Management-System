@@ -35,4 +35,19 @@ return [
         ],
     ],
 
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-opus-5'),
+    ],
+
+    // OpenRouter (OpenAI-compatible gateway). If set, it is preferred over the
+    // direct Anthropic key for AI account insights.
+    'openrouter' => [
+        'key' => env('OPENROUTER_API_KEY'),
+        'model' => env('OPENROUTER_MODEL', 'anthropic/claude-sonnet-5'),
+        // OpenRouter reserves credit against max_tokens up front, so keep this
+        // modest — the assistant only needs room for tool args + a short summary.
+        'max_tokens' => (int) env('OPENROUTER_MAX_TOKENS', 700),
+    ],
+
 ];

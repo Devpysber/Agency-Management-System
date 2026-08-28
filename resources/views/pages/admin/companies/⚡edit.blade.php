@@ -25,7 +25,16 @@ new class extends Component
     public $company_tags;
     public $company_notes;
     public $company_type;
-    public $company_social;
+    public $company_facebook;
+    public $company_twitter;
+    public $company_linkedin;
+    public $company_instagram;
+    public $company_youtube;
+    public $company_github;
+    public $status;
+    public $company_employee_count;
+    public $company_description;
+    public $company_postal_code;
 
     public function mount($id)
     {
@@ -49,7 +58,17 @@ new class extends Component
         $this->company_tags = $this->company->company_tags;
         $this->company_notes = $this->company->company_notes;
         $this->company_type = $this->company->company_type;
-        $this->company_social = $this->company->company_social;
+        $socialMedia = json_decode($this->company->company_social ?? '{}', true) ?: [];
+        $this->company_facebook = $socialMedia['facebook'] ?? '';
+        $this->company_twitter = $socialMedia['twitter'] ?? '';
+        $this->company_linkedin = $socialMedia['linkedin'] ?? '';
+        $this->company_instagram = $socialMedia['instagram'] ?? '';
+        $this->company_youtube = $socialMedia['youtube'] ?? '';
+        $this->company_github = $socialMedia['github'] ?? '';
+        $this->status = $this->company->status;
+        $this->company_employee_count = $this->company->company_employee_count;
+        $this->company_description = $this->company->company_description;
+        $this->company_postal_code = $this->company->company_postal_code;
     }
 
     public function update()
@@ -73,7 +92,21 @@ new class extends Component
             'company_state' => 'nullable|string|max:100',
             'company_zip' => 'nullable|string|max:20',
             'company_country' => 'nullable|string|max:100',
-            'company_social' => 'nullable|string',
+            'company_facebook' => 'nullable|url|max:255',
+            'company_twitter' => 'nullable|url|max:255',
+            'company_linkedin' => 'nullable|url|max:255',
+            'company_instagram' => 'nullable|url|max:255',
+            'company_youtube' => 'nullable|url|max:255',
+            'company_github' => 'nullable|url|max:255',
+            'status' => 'nullable|string',
+            'company_employee_count' => 'nullable|string',
+            'company_description' => 'nullable|string',
+            'company_postal_code' => 'nullable|string|max:20',
+        ], [
+            'company_name.required' => 'Please enter the company name.',
+            'company_email.required' => 'Please enter a company email address.',
+            'company_email.email' => 'Please enter a valid email address.',
+            'company_email.unique' => 'A company with this email already exists.',
         ]);
 
         try {
@@ -96,23 +129,39 @@ new class extends Component
                 'company_tags' => $this->company_tags,
                 'company_notes' => $this->company_notes,
                 'company_type' => $this->company_type,
-                'company_social' => $this->company_social,
+                'company_social' => json_encode(array_filter([
+                    'facebook' => $this->company_facebook,
+                    'twitter' => $this->company_twitter,
+                    'linkedin' => $this->company_linkedin,
+                    'instagram' => $this->company_instagram,
+                    'youtube' => $this->company_youtube,
+                    'github' => $this->company_github,
+                ])),
+                'status' => $this->status ?: 'active',
+                'company_employee_count' => $this->company_employee_count,
+                'company_description' => $this->company_description,
+                'company_postal_code' => $this->company_postal_code,
             ]);
 
-            session()->flash('message', 'Company updated successfully!');
-            session()->flash('type', 'success');
+            session()->flash('success', 'Company updated successfully!');
 
             return redirect(route('companies.all'));
 
         } catch (\Exception $e) {
-            session()->flash('message', 'Error updating company: ' . $e->getMessage());
-            session()->flash('type', 'error');
+            session()->flash('error', 'Error updating company: ' . $e->getMessage());
         }
     }
 
     public function cancel()
     {
-        return $this->redirectRoute('companies.view', $this->companyId);
+        return $this->redirectRoute('companies.show', $this->companyId);
+    }
+
+    public function render()
+    {
+        return $this->view([
+            'staffMembers' => \App\Models\staff::orderBy('name')->get(),
+        ]);
     }
 };
 ?>
@@ -301,8 +350,12 @@ new class extends Component
                                             <i class="fas fa-user-tie me-1 text-muted"></i>
                                             Company Owner
                                         </label>
-                                        <input type="text" class="form-control @error('company_owner') is-invalid @enderror" 
-                                               wire:model="company_owner" placeholder="Enter owner name">
+                                        <select class="form-select @error('company_owner') is-invalid @enderror" wire:model="company_owner">
+                                            <option value="">Select Owner</option>
+                                            @foreach ($staffMembers as $member)
+                                                <option value="{{ $member->name }}">{{ $member->name }}</option>
+                                            @endforeach
+                                        </select>
                                         @error('company_owner')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -412,22 +465,84 @@ new class extends Component
                             <div class="mb-4">
                                 <h5 class="fw-semibold mb-3">
                                     <i class="fas fa-share-alt text-primary me-2"></i>
-                                    Social Media (JSON format)
+                                    Social Media
                                 </h5>
                                 <div class="row g-3">
-                                    <div class="col-12">
+                                    <div class="col-md-4">
                                         <label class="form-label fw-medium">
-                                            <i class="fas fa-code me-1 text-muted"></i>
-                                            Social Media Links (JSON)
+                                            <i class="fab fa-facebook text-primary me-1"></i>
+                                            Facebook
                                         </label>
-                                        <textarea class="form-control @error('company_social') is-invalid @enderror" 
-                                                  wire:model="company_social" rows="4" 
-                                                  placeholder='{"facebook":"https://facebook.com/company","twitter":"https://twitter.com/company","linkedin":"https://linkedin.com/company"}'></textarea>
-                                        <small class="text-muted">
-                                            <i class="fas fa-info-circle"></i> 
-                                            Format: {"facebook":"url","twitter":"url","linkedin":"url","instagram":"url","youtube":"url","github":"url"}
-                                        </small>
-                                        @error('company_social')
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fab fa-facebook"></i></span>
+                                            <input type="text" class="form-control @error('company_facebook') is-invalid @enderror" wire:model="company_facebook" placeholder="Facebook URL">
+                                        </div>
+                                        @error('company_facebook')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-medium">
+                                            <i class="fab fa-twitter text-info me-1"></i>
+                                            Twitter/X
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fab fa-twitter"></i></span>
+                                            <input type="text" class="form-control @error('company_twitter') is-invalid @enderror" wire:model="company_twitter" placeholder="Twitter URL">
+                                        </div>
+                                        @error('company_twitter')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-medium">
+                                            <i class="fab fa-linkedin text-primary me-1"></i>
+                                            LinkedIn
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fab fa-linkedin"></i></span>
+                                            <input type="text" class="form-control @error('company_linkedin') is-invalid @enderror" wire:model="company_linkedin" placeholder="LinkedIn URL">
+                                        </div>
+                                        @error('company_linkedin')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-medium">
+                                            <i class="fab fa-instagram text-danger me-1"></i>
+                                            Instagram
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fab fa-instagram"></i></span>
+                                            <input type="text" class="form-control @error('company_instagram') is-invalid @enderror" wire:model="company_instagram" placeholder="Instagram URL">
+                                        </div>
+                                        @error('company_instagram')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-medium">
+                                            <i class="fab fa-youtube text-danger me-1"></i>
+                                            YouTube
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fab fa-youtube"></i></span>
+                                            <input type="text" class="form-control @error('company_youtube') is-invalid @enderror" wire:model="company_youtube" placeholder="YouTube URL">
+                                        </div>
+                                        @error('company_youtube')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-medium">
+                                            <i class="fab fa-github text-dark me-1"></i>
+                                            GitHub
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fab fa-github"></i></span>
+                                            <input type="text" class="form-control @error('company_github') is-invalid @enderror" wire:model="company_github" placeholder="GitHub URL">
+                                        </div>
+                                        @error('company_github')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
@@ -451,11 +566,11 @@ new class extends Component
                                             <i class="fas fa-bolt me-1 text-warning"></i>
                                             Status
                                         </label>
-                                        <select class="form-select">
-                                            <option value="active" {{ $company->status == 'active' ? 'selected' : '' }}>🟢 Active</option>
-                                            <option value="inactive" {{ $company->status == 'inactive' ? 'selected' : '' }}>🔴 Inactive</option>
-                                            <option value="pending" {{ $company->status == 'pending' ? 'selected' : '' }}>🟡 Pending</option>
-                                            <option value="suspended" {{ $company->status == 'suspended' ? 'selected' : '' }}>⚫ Suspended</option>
+                                        <select class="form-select" wire:model="status">
+                                            <option value="active">🟢 Active</option>
+                                            <option value="inactive">🔴 Inactive</option>
+                                            <option value="pending">🟡 Pending</option>
+                                            <option value="suspended">⚫ Suspended</option>
                                         </select>
                                     </div>
                                     <div>

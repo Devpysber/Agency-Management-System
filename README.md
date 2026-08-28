@@ -180,6 +180,16 @@ Run Seeder (Optional)
 php artisan db:seed
 ```
 
+Link Storage
+
+Staff photos, portfolio/blog/testimonial images, and settings logos are
+stored in `storage/app/public` and served through a symlink — without this
+step every uploaded file 404s even though the upload itself succeeds.
+
+```bash
+php artisan storage:link
+```
+
 Start Development Server
 
 ```bash
@@ -328,4 +338,4 @@ If you found this project helpful, please give it a ⭐ on GitHub.
 
 **Active Development**
 
-This CRM System is currently under active development. New modules and enhancements are continuously being added to make it a complete, enterprise-ready CRM solution.
+This CRM System is currently under active development. New modules and enhancements are continuously being added to make it a complete, enterprise-ready CRM solution.# Agency-Management-System

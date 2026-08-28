@@ -43,7 +43,9 @@ class Task extends Model
 
     public function related()
     {
-        return $this->morphTo();
+        // Explicit column names — this table uses related_to/related_type,
+        // not morphTo()'s default related_id/related_type.
+        return $this->morphTo('related', 'related_type', 'related_to');
     }
 
     // ==================== ACCESSORS ====================
@@ -156,6 +158,8 @@ class Task extends Model
             return Contact::find($this->related_to);
         } elseif ($this->related_type === 'company') {
             return Company::find($this->related_to);
+        } elseif ($this->related_type === 'project') {
+            return Project::find($this->related_to);
         }
         return null;
     }

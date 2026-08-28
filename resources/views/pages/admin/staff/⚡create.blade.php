@@ -130,6 +130,11 @@ new class extends Component
 
     public function delete($id)
     {
+        if (!auth()->user()->hasPermission('Staff', 'Delete')) {
+            session()->flash('error', "You don't have permission to delete staff.");
+            return;
+        }
+
         try {
             $staff = Staff::findOrFail($id);
             $staff->delete();

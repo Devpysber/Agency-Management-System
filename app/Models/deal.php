@@ -19,6 +19,7 @@ class deal extends Model
         'deal_status',
         'contact_id',
         'company_id',
+        'assigned_to',
         'created_by',
     ];
     public function company(){
@@ -29,5 +30,8 @@ class deal extends Model
     }
     public function createdBy(){
         return $this->belongsTo(User::class, 'created_by');
+    }
+    public function assignedTo(){
+        return $this->belongsTo(staff::class, 'assigned_to');
     }
 }

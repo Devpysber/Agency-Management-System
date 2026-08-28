@@ -45,7 +45,7 @@ new class extends Component
         'probability' => 'nullable|integer|min:0|max:100',
         
         // Timeline
-        'expected_close_date' => 'nullable|date|after_or_equal:today',
+        'expected_close_date' => 'nullable|date',
         'actual_close_date' => 'nullable|date|after_or_equal:expected_close_date',
         
         // Stage & Status
@@ -55,6 +55,17 @@ new class extends Component
         // Relationships
         'company_id' => 'nullable|exists:companies,id',
         'contact_id' => 'nullable|exists:contacts,id',
+    ];
+
+    protected $messages = [
+        'deal_name.required' => 'Please enter a deal name.',
+        'deal_value.required' => 'Please enter the deal value.',
+        'deal_value.numeric' => 'Deal value must be a number.',
+        'currency.in' => 'Please select a valid currency.',
+        'expected_close_date.after_or_equal' => 'Expected close date cannot be in the past.',
+        'actual_close_date.after_or_equal' => 'Actual close date cannot be before the expected close date.',
+        'deal_stage.in' => 'Please select a valid deal stage.',
+        'deal_status.in' => 'Please select a valid deal status.',
     ];
 
     public function mount($id)

@@ -21,6 +21,7 @@ class Contact extends Model
         
         // Company Information
         'company_id',
+        'user_id',
         'job_title',
         'department',
         
@@ -82,6 +83,35 @@ class Contact extends Model
     ];
     public function company(){
         return $this->belongsTo(company::class);
+    }
+
+    /**
+     * The user account this contact logs into the client portal with
+     * (nullable — most contacts never get portal access).
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function assignedTo()
+    {
+        return $this->belongsTo(staff::class, 'assigned_to');
+    }
+
+    public function deals()
+    {
+        return $this->hasMany(deal::class, 'contact_id');
+    }
+
+    public function communications()
+    {
+        return $this->hasMany(Communication::class, 'contact_id');
+    }
+
+    public function getFullNameAttribute()
+    {
+        return trim($this->first_name . ' ' . $this->last_name);
     }
 
 }

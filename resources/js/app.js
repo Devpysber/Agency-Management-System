@@ -36,4 +36,7 @@ app.component('example-component', ExampleComponent);
  * scaffolding. Otherwise, you will need to add an element yourself.
  */
 
-app.mount('#app');
+// Only the auth scaffolding layout has #app; the admin/client panels don't.
+if (document.getElementById('app')) {
+    app.mount('#app');
+}

@@ -1,21 +1,32 @@
 <?php
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use App\Models\Deal;
+use App\Models\staff;
 
 new class extends Component
 {
-    public $deals;
+    use WithPagination;
+
     public $search = '';
 
-    public function mount()
+    protected function filteredBaseQuery()
     {
-        $this->fetchDeals();
-    }
+        $query = Deal::query();
 
-    public function fetchDeals()
-    {
-        $query = Deal::with(['company', 'contact']);
+        // Sales Executive owns ASSIGNED opportunities only. Company-wide
+        // viewers (BDM manages the team via Deals.Assign; CEO via
+        // Deals.Approve) see everything; everyone else is scoped to theirs.
+        $user = auth()->user();
+        $seesAll = !$user || $user->role === 'admin' || ! $user->hasPermission('Deals', 'Edit')
+            || $user->hasPermission('Deals', 'Assign') || $user->hasPermission('Deals', 'Approve');
+        if (! $seesAll) {
+            $myStaffId = staff::where('user_id', $user->id)->value('id');
+            if ($myStaffId) {
+                $query->where('assigned_to', $myStaffId);
+            }
+        }
 
         if (!empty($this->search)) {
             $query->where(function($q) {
@@ -24,22 +35,50 @@ new class extends Component
             });
         }
 
-        $this->deals = $query->orderBy('created_at', 'desc')->get();
+        return $query;
+    }
+
+    public function fetchDeals()
+    {
+        return $this->filteredBaseQuery()
+            ->with(['company', 'contact'])
+            ->orderBy('created_at', 'desc');
+    }
+
+    public function getStatsProperty()
+    {
+        return [
+            'total' => (clone $this->filteredBaseQuery())->count(),
+            'active' => (clone $this->filteredBaseQuery())->where('deal_status', 'active')->count(),
+            'won' => (clone $this->filteredBaseQuery())->where('deal_status', 'won')->count(),
+            'lost' => (clone $this->filteredBaseQuery())->where('deal_status', 'lost')->count(),
+        ];
     }
 
     public function updatedSearch()
     {
-        $this->fetchDeals();
+        $this->resetPage();
     }
 
     public function delete($id)
     {
+        if (!auth()->user()->hasPermission('Deals', 'Delete')) {
+            session()->flash('error', "You don't have permission to delete deals.");
+            return;
+        }
+
         $deal = Deal::find($id);
         if ($deal) {
             $deal->delete();
             session()->flash('success', 'Deal deleted successfully!');
-            $this->fetchDeals();
         }
+    }
+
+    public function render()
+    {
+        return $this->view([
+            'deals' => $this->fetchDeals()->paginate(15),
+        ])->layout('layouts.app');
     }
 };
 ?>
@@ -58,9 +97,11 @@ new class extends Component
                 <button class="btn btn-secondary">
                     <i class="fas fa-file-import"></i> Import
                 </button>
-                <a href="{{ route('deals.add') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Add New Deal
-                </a>
+                @if ((auth()->user()->role === 'admin' || auth()->user()->hasPermission('Deals', 'Edit')))
+                    <a href="{{ route('deals.add') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add New Deal
+                    </a>
+                @endif
             </div>
         </div>
 
@@ -92,7 +133,7 @@ new class extends Component
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <button class="btn btn-secondary" wire:click="$set('search', ''); fetchDeals()">
+                        <button class="btn btn-secondary" wire:click="$set('search', ''); resetPage()">
                             <i class="fas fa-undo"></i> Reset
                         </button>
                     </div>
@@ -109,7 +150,7 @@ new class extends Component
                     </div>
                     <div class="stat-info">
                         <h3>Total Deals</h3>
-                        <p class="stat-number">{{ $deals->count() }}</p>
+                        <p class="stat-number">{{ $this->stats['total'] }}</p>
                     </div>
                 </div>
             </div>
@@ -120,7 +161,7 @@ new class extends Component
                     </div>
                     <div class="stat-info">
                         <h3>Active</h3>
-                        <p class="stat-number">{{ $deals->where('deal_status', 'active')->count() }}</p>
+                        <p class="stat-number">{{ $this->stats['active'] }}</p>
                     </div>
                 </div>
             </div>
@@ -131,7 +172,7 @@ new class extends Component
                     </div>
                     <div class="stat-info">
                         <h3>Won</h3>
-                        <p class="stat-number">{{ $deals->where('deal_status', 'won')->count() }}</p>
+                        <p class="stat-number">{{ $this->stats['won'] }}</p>
                     </div>
                 </div>
             </div>
@@ -142,7 +183,7 @@ new class extends Component
                     </div>
                     <div class="stat-info">
                         <h3>Lost</h3>
-                        <p class="stat-number">{{ $deals->where('deal_status', 'lost')->count() }}</p>
+                        <p class="stat-number">{{ $this->stats['lost'] }}</p>
                     </div>
                 </div>
             </div>
@@ -156,7 +197,7 @@ new class extends Component
                     Deals List
                 </h3>
                 <div>
-                    <span class="badge bg-primary me-2">{{ $deals->count() }} Deals</span>
+                    <span class="badge bg-primary me-2">{{ $deals->total() }} Deals</span>
                     <button class="btn btn-sm btn-outline-secondary" wire:click="fetchDeals">
                         <i class="fas fa-sync-alt"></i>
                     </button>
@@ -275,14 +316,16 @@ new class extends Component
                                         <a href="{{ route('deals.view', $deal->id) }}" class="btn btn-outline-primary">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('deals.edit', $deal->id) }}" class="btn btn-outline-secondary">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <button class="btn btn-outline-danger" 
-                                                wire:click="delete({{ $deal->id }})" 
-                                                wire:confirm="Are you sure you want to delete this deal?">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        @if ((auth()->user()->role === 'admin' || auth()->user()->hasPermission('Deals', 'Edit')))
+                                            <a href="{{ route('deals.edit', $deal->id) }}" class="btn btn-outline-secondary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger"
+                                                    wire:click="delete({{ $deal->id }})"
+                                                    wire:confirm="Are you sure you want to delete this deal?">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -303,15 +346,36 @@ new class extends Component
                 </div>
             </div>
             <div class="card-footer">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
                         <span class="text-muted">
-                            Showing {{ $deals->count() }} deal(s)
+                            Showing {{ $deals->firstItem() ?? 0 }}-{{ $deals->lastItem() ?? 0 }} of {{ $deals->total() }}
                             @if($search)
                                 <span class="text-muted">(filtered)</span>
                             @endif
                         </span>
                     </div>
+                    @if($deals->hasPages())
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item {{ $deals->onFirstPage() ? 'disabled' : '' }}">
+                                <button class="page-link" wire:click="previousPage" @if($deals->onFirstPage()) disabled @endif>
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                            </li>
+                            @for ($page = max(1, $deals->currentPage() - 2); $page <= min($deals->lastPage(), $deals->currentPage() + 2); $page++)
+                                <li class="page-item {{ $page == $deals->currentPage() ? 'active' : '' }}">
+                                    <button class="page-link" wire:click="gotoPage({{ $page }})">{{ $page }}</button>
+                                </li>
+                            @endfor
+                            <li class="page-item {{ !$deals->hasMorePages() ? 'disabled' : '' }}">
+                                <button class="page-link" wire:click="nextPage" @if(!$deals->hasMorePages()) disabled @endif>
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                    @endif
                 </div>
             </div>
         </div>

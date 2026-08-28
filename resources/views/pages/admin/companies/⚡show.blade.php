@@ -7,11 +7,61 @@ new class extends Component
 {
     //
     public $company;
+    public $contactsCount = 0;
+    public $dealsCount = 0;
+    public $openTasksCount = 0;
+    public $communicationsCount = 0;
+
     public function mount($id){
-        $this->company = company::find($id);
-      //  dd($this->company);
+        $this->company = company::findOrFail($id);
+        $this->contactsCount = \App\Models\Contact::where('company_id', $id)->count();
+        $this->dealsCount = \App\Models\deal::where('company_id', $id)->count();
+        $this->openTasksCount = \App\Models\Task::where('related_type', 'company')
+            ->where('related_to', $id)
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->count();
+        $this->communicationsCount = \App\Models\Communication::where('company_id', $id)->count();
     }
-    
+
+    public function render()
+    {
+        $id = $this->company->id;
+
+        $contactEvents = \App\Models\Contact::where('company_id', $id)
+            ->latest('created_at')->limit(3)->get()
+            ->map(fn ($c) => [
+                'icon' => 'fa-user-plus', 'color' => 'blue',
+                'text' => '<strong>' . $c->first_name . ' ' . $c->last_name . '</strong> was added as a contact',
+                'time' => $c->created_at,
+            ]);
+
+        $dealEvents = \App\Models\deal::where('company_id', $id)
+            ->latest('created_at')->limit(3)->get()
+            ->map(fn ($d) => [
+                'icon' => 'fa-chart-line', 'color' => 'green',
+                'text' => 'Deal <strong>' . $d->deal_name . '</strong> was ' . ($d->deal_status === 'won' ? 'won' : ($d->deal_status === 'lost' ? 'lost' : 'created')),
+                'time' => $d->created_at,
+            ]);
+
+        $commEvents = \App\Models\Communication::where('company_id', $id)
+            ->latest('occurred_at')->limit(3)->get()
+            ->map(fn ($c) => [
+                'icon' => $c->type_icon, 'color' => 'orange',
+                'text' => ucfirst($c->type) . ' logged: <strong>' . $c->subject . '</strong>',
+                'time' => $c->occurred_at,
+            ]);
+
+        $recentActivity = $contactEvents->concat($dealEvents)->concat($commEvents)
+            ->sortByDesc('time')->take(5)->values();
+
+        return $this->view([
+            'recentActivity' => $recentActivity,
+            'companyContacts' => \App\Models\Contact::where('company_id', $id)->latest('created_at')->limit(4)->get(),
+            'tags' => $this->company->company_tags
+                ? array_filter(array_map('trim', explode(',', $this->company->company_tags)))
+                : [],
+        ]);
+    }
 };
 ?>
 
@@ -25,29 +75,34 @@ new class extends Component
                         <i class="fas fa-building fa-3x text-primary"></i>
                     </div>
                     <div>
-                        <h1 class="mb-0">TechCorp Solutions</h1>
+                        <h1 class="mb-0">{{ $company->company_name ?? 'N/A' }}</h1>
                         <p class="mb-0">
-                            <span class="badge bg-success">
-                                <i class="fas fa-circle me-1" style="font-size: 8px;"></i>
-                                Active
-                            </span>
-                            <span class="text-muted ms-2">TC-2024-001</span>
+                            @if($company->status === 'active')
+                                <span class="badge bg-success"><i class="fas fa-circle me-1" style="font-size: 8px;"></i> Active</span>
+                            @elseif($company->status === 'pending')
+                                <span class="badge bg-warning text-dark"><i class="fas fa-circle me-1" style="font-size: 8px;"></i> Pending</span>
+                            @else
+                                <span class="badge bg-danger"><i class="fas fa-circle me-1" style="font-size: 8px;"></i> Inactive</span>
+                            @endif
+                            <span class="text-muted ms-2">{{ $company->company_registration_no ?? 'N/A' }}</span>
                             <span class="text-muted ms-2">|</span>
-                            <span class="text-muted ms-2">Founded: Jan 15, 2024</span>
+                            <span class="text-muted ms-2">Founded: {{ $company->company_founded_date ? \Carbon\Carbon::parse($company->company_founded_date)->format('M d, Y') : 'N/A' }}</span>
                         </p>
                     </div>
                 </div>
             </div>
             <div class="header-actions">
-                <a href="#" class="btn btn-secondary">
+                <a href="{{ route('companies.all') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
-                <a href="#" class="btn btn-secondary">
-                    <i class="fas fa-edit"></i> Edit
-                </a>
-                <button class="btn btn-primary">
+                @if ((auth()->user()->role === 'admin' || auth()->user()->hasPermission('Companies', 'Edit')))
+                    <a href="{{ route('companies.edit', $company->id) }}" class="btn btn-secondary">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                @endif
+                <a href="mailto:{{ $company->company_email }}" class="btn btn-primary">
                     <i class="fas fa-envelope"></i> Send Email
-                </button>
+                </a>
             </div>
         </div>
 
@@ -60,8 +115,8 @@ new class extends Component
                     </div>
                     <div class="stat-info">
                         <h3>Total Contacts</h3>
-                        <p class="stat-number">24</p>
-                        <a href="#" class="text-primary" style="font-size: 12px;">View all contacts</a>
+                        <p class="stat-number">{{ $contactsCount }}</p>
+                        <a href="{{ route('contacts.all') }}" class="text-primary" style="font-size: 12px;">View all contacts</a>
                     </div>
                 </div>
             </div>
@@ -72,8 +127,8 @@ new class extends Component
                     </div>
                     <div class="stat-info">
                         <h3>Active Deals</h3>
-                        <p class="stat-number">12</p>
-                        <a href="#" class="text-primary" style="font-size: 12px;">View pipeline</a>
+                        <p class="stat-number">{{ $dealsCount }}</p>
+                        <a href="{{ route('deals.pipeline') }}" class="text-primary" style="font-size: 12px;">View pipeline</a>
                     </div>
                 </div>
             </div>
@@ -84,8 +139,8 @@ new class extends Component
                     </div>
                     <div class="stat-info">
                         <h3>Open Tasks</h3>
-                        <p class="stat-number">8</p>
-                        <a href="#" class="text-primary" style="font-size: 12px;">View tasks</a>
+                        <p class="stat-number">{{ $openTasksCount }}</p>
+                        <a href="{{ route('tasks.all') }}" class="text-primary" style="font-size: 12px;">View tasks</a>
                     </div>
                 </div>
             </div>
@@ -96,8 +151,8 @@ new class extends Component
                     </div>
                     <div class="stat-info">
                         <h3>Communications</h3>
-                        <p class="stat-number">45</p>
-                        <a href="#" class="text-primary" style="font-size: 12px;">View activity</a>
+                        <p class="stat-number">{{ $communicationsCount }}</p>
+                        <a href="{{ route('communications.activity-log') }}" class="text-primary" style="font-size: 12px;">View activity</a>
                     </div>
                 </div>
             </div>
@@ -316,42 +371,19 @@ new class extends Component
                     </div>
                     <div class="card-body">
                         <div class="activity-list">
-                            <div class="activity-item">
-                                <div class="activity-icon blue">
-                                    <i class="fas fa-user-plus"></i>
+                            @forelse ($recentActivity as $event)
+                                <div class="activity-item">
+                                    <div class="activity-icon {{ $event['color'] }}">
+                                        <i class="fas {{ $event['icon'] }}"></i>
+                                    </div>
+                                    <div class="activity-info">
+                                        <p>{!! $event['text'] !!}</p>
+                                        <span class="activity-time">{{ $event['time']->diffForHumans() }}</span>
+                                    </div>
                                 </div>
-                                <div class="activity-info">
-                                    <p><strong>John Doe</strong> added a new contact</p>
-                                    <span class="activity-time">2 hours ago</span>
-                                </div>
-                            </div>
-                            <div class="activity-item">
-                                <div class="activity-icon green">
-                                    <i class="fas fa-edit"></i>
-                                </div>
-                                <div class="activity-info">
-                                    <p><strong>Sarah Smith</strong> updated company information</p>
-                                    <span class="activity-time">5 hours ago</span>
-                                </div>
-                            </div>
-                            <div class="activity-item">
-                                <div class="activity-icon purple">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                                <div class="activity-info">
-                                    <p><strong>Mike Johnson</strong> completed a task</p>
-                                    <span class="activity-time">1 day ago</span>
-                                </div>
-                            </div>
-                            <div class="activity-item">
-                                <div class="activity-icon orange">
-                                    <i class="fas fa-comment"></i>
-                                </div>
-                                <div class="activity-info">
-                                    <p><strong>Emily Brown</strong> sent an email</p>
-                                    <span class="activity-time">2 days ago</span>
-                                </div>
-                            </div>
+                            @empty
+                                <p class="text-muted mb-0">No activity recorded for this company yet.</p>
+                            @endforelse
                         </div>
                     </div>
                 </div>
@@ -369,30 +401,14 @@ new class extends Component
                     </div>
                     <div class="card-body">
                         <div class="d-flex flex-wrap gap-2">
-                            <span class="badge bg-primary p-2">
-                                <i class="fas fa-tag me-1"></i>
-                                Technology
-                            </span>
-                            <span class="badge bg-success p-2">
-                                <i class="fas fa-tag me-1"></i>
-                                Enterprise
-                            </span>
-                            <span class="badge bg-info p-2">
-                                <i class="fas fa-tag me-1"></i>
-                                B2B
-                            </span>
-                            <span class="badge bg-warning text-dark p-2">
-                                <i class="fas fa-tag me-1"></i>
-                                Startup
-                            </span>
-                            <span class="badge bg-secondary p-2">
-                                <i class="fas fa-tag me-1"></i>
-                                SaaS
-                            </span>
-                            <span class="badge bg-danger p-2">
-                                <i class="fas fa-tag me-1"></i>
-                                High Priority
-                            </span>
+                            @forelse ($tags as $tag)
+                                <span class="badge bg-primary p-2">
+                                    <i class="fas fa-tag me-1"></i>
+                                    {{ $tag }}
+                                </span>
+                            @empty
+                                <p class="text-muted mb-0">No tags assigned.</p>
+                            @endforelse
                         </div>
                     </div>
                 </div>
@@ -409,26 +425,27 @@ new class extends Component
                         <div class="mb-3">
                             <label class="text-muted small fw-medium">Company Owner</label>
                             <div class="d-flex align-items-center mt-1">
-                                <img src="https://ui-avatars.com/api/?name=Sarah+Smith&background=4F46E5&color=fff" 
-                                     class="rounded-circle me-2" width="40" height="40">
-                                <div>
-                                    <p class="fw-semibold mb-0">Sarah Smith</p>
-                                    <small class="text-muted">Senior Account Manager</small>
-                                </div>
+                                @if($company->company_owner)
+                                    <img src="https://ui-avatars.com/api/?name={{ urlencode($company->company_owner) }}&background=4F46E5&color=fff"
+                                         class="rounded-circle me-2" width="40" height="40">
+                                    <p class="fw-semibold mb-0">{{ $company->company_owner }}</p>
+                                @else
+                                    <p class="text-muted mb-0">Unassigned</p>
+                                @endif
                             </div>
                         </div>
                         <div>
-                            <label class="text-muted small fw-medium">Team Members</label>
-                            <div class="d-flex mt-1">
-                                <img src="https://ui-avatars.com/api/?name=John+Doe&background=10B981&color=fff" 
-                                     class="rounded-circle me-1" width="32" height="32" title="John Doe">
-                                <img src="https://ui-avatars.com/api/?name=Mike+Johnson&background=8B5CF6&color=fff" 
-                                     class="rounded-circle me-1" width="32" height="32" title="Mike Johnson">
-                                <img src="https://ui-avatars.com/api/?name=Emily+Brown&background=F59E0B&color=fff" 
-                                     class="rounded-circle me-1" width="32" height="32" title="Emily Brown">
-                                <button class="btn btn-sm btn-outline-secondary rounded-circle" style="width: 32px; height: 32px;">
+                            <label class="text-muted small fw-medium">Contacts at this Company</label>
+                            <div class="d-flex align-items-center mt-1">
+                                @forelse ($companyContacts as $person)
+                                    <img src="https://ui-avatars.com/api/?name={{ urlencode($person->first_name . ' ' . $person->last_name) }}&background=10B981&color=fff"
+                                         class="rounded-circle me-1" width="32" height="32" title="{{ $person->first_name }} {{ $person->last_name }}">
+                                @empty
+                                    <span class="text-muted small">No contacts yet.</span>
+                                @endforelse
+                                <a href="{{ route('contacts.add') }}" class="btn btn-sm btn-outline-secondary rounded-circle ms-1" style="width: 32px; height: 32px;" title="Add contact">
                                     <i class="fas fa-plus"></i>
-                                </button>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -444,30 +461,37 @@ new class extends Component
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
-                            <button class="btn btn-outline-primary">
+                            <a href="{{ route('contacts.add') }}" class="btn btn-outline-primary">
                                 <i class="fas fa-user-plus me-2"></i>
                                 Add Contact
-                            </button>
-                            <button class="btn btn-outline-success">
+                            </a>
+                            <a href="{{ route('deals.add') }}" class="btn btn-outline-success">
                                 <i class="fas fa-file-invoice me-2"></i>
                                 Create Deal
-                            </button>
-                            <button class="btn btn-outline-info">
+                            </a>
+                            <a href="{{ route('communications.meetings') }}" class="btn btn-outline-info">
                                 <i class="fas fa-calendar-plus me-2"></i>
                                 Schedule Meeting
-                            </button>
-                            <button class="btn btn-outline-warning">
-                                <i class="fas fa-envelope me-2"></i>
-                                Send Email
-                            </button>
-                            <button class="btn btn-outline-danger">
+                            </a>
+                            @if($company->company_email)
+                                <a href="mailto:{{ $company->company_email }}" class="btn btn-outline-warning">
+                                    <i class="fas fa-envelope me-2"></i>
+                                    Send Email
+                                </a>
+                            @else
+                                <a href="{{ route('communications.emails') }}" class="btn btn-outline-warning">
+                                    <i class="fas fa-envelope me-2"></i>
+                                    Log Email
+                                </a>
+                            @endif
+                            <a href="{{ route('communications.calls') }}" class="btn btn-outline-danger">
                                 <i class="fas fa-phone me-2"></i>
                                 Log Call
-                            </button>
-                            <button class="btn btn-outline-secondary">
+                            </a>
+                            <a href="{{ route('tasks.create') }}" class="btn btn-outline-secondary">
                                 <i class="fas fa-tasks me-2"></i>
                                 Create Task
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>

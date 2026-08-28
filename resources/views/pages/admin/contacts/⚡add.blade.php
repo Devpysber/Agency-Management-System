@@ -3,6 +3,7 @@
 use Livewire\Component;
 use App\Models\company;
 use App\Models\contact;
+use App\Models\staff;
 
 new class extends Component
 {
@@ -12,7 +13,10 @@ new class extends Component
     public $email;
     public $phone;
     public $mobile;
-    
+    public $birth_date;
+    public $gender;
+    public $nationality;
+
     // Company Information
     public $company_id;
     public $job_title;
@@ -49,10 +53,12 @@ new class extends Component
     public $status = 'active';
     
     public $companies;
+    public $staffMembers;
 
     public function mount()
     {
         $this->companies = Company::all();
+        $this->staffMembers = staff::orderBy('name')->get();
     }
 
    protected $rules = [
@@ -62,31 +68,46 @@ new class extends Component
         'email' => 'required|email|max:255|unique:contacts,email',
         'phone' => 'nullable|string|max:20',
         'mobile' => 'nullable|string|max:20',
-        
+        'birth_date' => 'nullable|date|before:today',
+        'gender' => 'nullable|string|in:male,female,other,prefer_not_to_say',
+        'nationality' => 'nullable|string|max:100',
+
         // Company Information
         'company_id' => 'nullable|exists:companies,id',
         'job_title' => 'nullable|string|max:255',
         'department' => 'nullable|string|max:255',
-        
+
         // Address
         'address' => 'nullable|string|max:500',
         'city' => 'nullable|string|max:100',
         'state' => 'nullable|string|max:100',
         'zip_code' => 'nullable|string|max:20',
         'country' => 'nullable|string|max:100',
-    
+
+        // Social Media
+        'facebook' => 'nullable|url|max:255',
+        'linkedin' => 'nullable|url|max:255',
+        'twitter' => 'nullable|url|max:255',
+        'instagram' => 'nullable|url|max:255',
+
+        // Lead Information
+        'assigned_to' => 'nullable|exists:staff,id',
+        'tags' => 'nullable|string',
     ];
     public function save()
     {
         $this->validate();
-      //  dd("worker");
+
         $contact = new Contact();
         $contact->first_name = $this->first_name;
         $contact->last_name = $this->last_name;
         $contact->email = $this->email;
         $contact->phone = $this->phone;
         $contact->mobile = $this->mobile;
-        $contact->company_id = $this->company_id;
+        $contact->birth_date = $this->birth_date ?: null;
+        $contact->gender = $this->gender;
+        $contact->nationality = $this->nationality;
+        $contact->company_id = $this->company_id ?: null;
         $contact->job_title = $this->job_title;
         $contact->department = $this->department;
         $contact->address = $this->address;
@@ -94,18 +115,25 @@ new class extends Component
         $contact->state = $this->state;
         $contact->zip_code = $this->zip_code;
         $contact->country = $this->country;
+        $contact->social_media = [
+            'facebook' => $this->facebook,
+            'linkedin' => $this->linkedin,
+            'twitter' => $this->twitter,
+            'instagram' => $this->instagram,
+        ];
         $contact->lead_source = $this->lead_source;
         $contact->lead_status = $this->lead_status;
         $contact->notes = $this->notes;
-        $contact->tags = $this->tags;
+        $contact->tags = $this->tags
+            ? array_values(array_filter(array_map('trim', explode(',', $this->tags))))
+            : [];
         $contact->email_opt_in = $this->email_opt_in;
         $contact->sms_opt_in = $this->sms_opt_in;
         $contact->call_opt_in = $this->call_opt_in;
-        $contact->assigned_to = $this->assigned_to;
+        $contact->assigned_to = $this->assigned_to ?: null;
         $contact->status = $this->status;
         $contact->save();
 
-        
         session()->flash('success', 'Contact created successfully!');
         return redirect()->route('contacts.all');
     }
@@ -504,10 +532,10 @@ new class extends Component
                                             Assign To
                                         </label>
                                         <select class="form-select @error('assigned_to') is-invalid @enderror" wire:model="assigned_to">
-                                            <option value="">Select User</option>
-                                            <option value="1">John Doe</option>
-                                            <option value="2">Sarah Smith</option>
-                                            <option value="3">Mike Johnson</option>
+                                            <option value="">Unassigned</option>
+                                            @foreach ($staffMembers as $member)
+                                                <option value="{{ $member->id }}">{{ $member->name }}</option>
+                                            @endforeach
                                         </select>
                                         @error('assigned_to')
                                             <div class="invalid-feedback">{{ $message }}</div>

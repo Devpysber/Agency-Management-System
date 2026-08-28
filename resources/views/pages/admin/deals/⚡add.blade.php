@@ -54,6 +54,17 @@ new class extends Component
         'contact_id' => 'nullable|exists:contacts,id',
     ];
 
+    protected $messages = [
+        'deal_name.required' => 'Please enter a deal name.',
+        'deal_value.required' => 'Please enter the deal value.',
+        'deal_value.numeric' => 'Deal value must be a number.',
+        'currency.in' => 'Please select a valid currency.',
+        'expected_close_date.after_or_equal' => 'Expected close date cannot be in the past.',
+        'actual_close_date.after_or_equal' => 'Actual close date cannot be before the expected close date.',
+        'deal_stage.in' => 'Please select a valid deal stage.',
+        'deal_status.in' => 'Please select a valid deal status.',
+    ];
+
     public function mount()
     {
         $this->companies = Company::all();

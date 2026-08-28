@@ -10,10 +10,27 @@ new class extends Component
     public function mount($id)
     {
         $this->deal = Deal::with(['company', 'contact', 'createdBy'])->findOrFail($id);
+
+        // Sales Executive owns ASSIGNED opportunities only. Pure viewers
+        // (Account Manager, CEO/COO/read-only staff — Deals.Edit=false) still
+        // see everything read-only; only someone who CAN edit deals but has
+        // no team-wide authority (Assign/Approve) is scoped to their own.
+        $user = auth()->user();
+        $seesAll = $user->role === 'admin' || ! $user->hasPermission('Deals', 'Edit')
+            || $user->hasPermission('Deals', 'Assign') || $user->hasPermission('Deals', 'Approve');
+        if (! $seesAll) {
+            $myStaffId = \App\Models\staff::where('user_id', $user->id)->value('id');
+            abort_unless($myStaffId && $this->deal->assigned_to === $myStaffId, 403);
+        }
     }
 
     public function delete($id)
     {
+        if (!auth()->user()->hasPermission('Deals', 'Delete')) {
+            session()->flash('error', "You don't have permission to delete deals.");
+            return;
+        }
+
         $deal = Deal::find($id);
         if ($deal) {
             $deal->delete();
@@ -52,12 +69,14 @@ new class extends Component
                 <a href="{{ route('deals.all') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
-                <a href="{{ route('deals.edit', $deal->id) }}" class="btn btn-secondary">
-                    <i class="fas fa-edit"></i> Edit
-                </a>
-                <button class="btn btn-danger" wire:click="delete({{ $deal->id }})" wire:confirm="Are you sure you want to delete this deal?">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
+                @if ((auth()->user()->role === 'admin' || auth()->user()->hasPermission('Deals', 'Edit')))
+                    <a href="{{ route('deals.edit', $deal->id) }}" class="btn btn-secondary">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <button class="btn btn-danger" wire:click="delete({{ $deal->id }})" wire:confirm="Are you sure you want to delete this deal?">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -281,6 +300,7 @@ new class extends Component
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
+                            @if ((auth()->user()->role === 'admin' || auth()->user()->hasPermission('Deals', 'Edit')))
                             <a href="{{ route('contacts.add') }}" class="btn btn-outline-primary">
                                 <i class="fas fa-user-plus me-2"></i>
                                 Add Contact
@@ -289,6 +309,7 @@ new class extends Component
                                 <i class="fas fa-building me-2"></i>
                                 Add Company
                             </a>
+                            @endif
                             <a href="{{ route('calendar.schedule') }}" class="btn btn-outline-info">
                                 <i class="fas fa-calendar-plus me-2"></i>
                                 Schedule Meeting
@@ -297,6 +318,7 @@ new class extends Component
                                 <i class="fas fa-envelope me-2"></i>
                                 Send Email
                             </a>
+                            @if ((auth()->user()->role === 'admin' || auth()->user()->hasPermission('Deals', 'Edit')))
                             <a href="{{ route('deals.edit', $deal->id) }}" class="btn btn-outline-secondary">
                                 <i class="fas fa-edit me-2"></i>
                                 Edit Deal
@@ -305,6 +327,7 @@ new class extends Component
                                 <i class="fas fa-trash me-2"></i>
                                 Delete Deal
                             </button>
+                            @endif
                         </div>
                     </div>
                 </div>

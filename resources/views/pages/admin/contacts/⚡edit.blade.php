@@ -3,6 +3,7 @@
 use Livewire\Component;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\staff;
 
 new class extends Component
 {
@@ -55,13 +56,15 @@ new class extends Component
     public $status;
     
     public $companies;
+    public $staffMembers;
 
     public function mount($id)
     {
         $this->contact = Contact::with('company')->findOrFail($id);
         $this->contactId = $this->contact->id;
         $this->companies = Company::all();
-        
+        $this->staffMembers = staff::orderBy('name')->get();
+
         // Load data into properties
         $this->first_name = $this->contact->first_name;
         $this->last_name = $this->contact->last_name;
@@ -82,7 +85,7 @@ new class extends Component
         $this->lead_source = $this->contact->lead_source;
         $this->lead_status = $this->contact->lead_status;
         $this->notes = $this->contact->notes;
-        $this->tags = $this->contact->tags;
+        $this->tags = is_array($this->contact->tags) ? implode(', ', $this->contact->tags) : $this->contact->tags;
         $this->email_opt_in = $this->contact->email_opt_in;
         $this->sms_opt_in = $this->contact->sms_opt_in;
         $this->call_opt_in = $this->contact->call_opt_in;
@@ -129,7 +132,7 @@ new class extends Component
         // Lead Information
         'lead_source' => 'nullable|string|max:255',
         'lead_status' => 'nullable|string|in:new,contacted,qualified,lost,customer',
-        'assigned_to' => 'nullable|exists:users,id',
+        'assigned_to' => 'nullable|exists:staff,id',
         'tags' => 'nullable|string',
         
         // Communication Preferences
@@ -149,13 +152,19 @@ new class extends Component
         $rules['email'] = 'required|email|max:255|unique:contacts,email,' . $this->contactId;
         $this->validate($rules);
 
-        // Create social media JSON
-        $socialMedia = json_encode([
+        // Social media — Contact::social_media is array-cast, so pass the
+        // plain array and let Eloquent serialize it (don't pre-encode here,
+        // that would double-encode it into a string when read back).
+        $socialMedia = [
             'facebook' => $this->facebook,
             'linkedin' => $this->linkedin,
             'twitter' => $this->twitter,
             'instagram' => $this->instagram,
-        ]);
+        ];
+
+        $tags = $this->tags
+            ? array_values(array_filter(array_map('trim', explode(',', $this->tags))))
+            : [];
 
         // Update contact
         $this->contact->update([
@@ -179,11 +188,11 @@ new class extends Component
             'lead_source' => $this->lead_source,
             'lead_status' => $this->lead_status,
             'notes' => $this->notes,
-            'tags' => $this->tags,
+            'tags' => $tags,
             'email_opt_in' => $this->email_opt_in,
             'sms_opt_in' => $this->sms_opt_in,
             'call_opt_in' => $this->call_opt_in,
-            'assigned_to' => $this->assigned_to,
+            'assigned_to' => $this->assigned_to ?: null,
             'status' => $this->status,
         ]);
 
@@ -595,10 +604,10 @@ new class extends Component
                                             Assign To
                                         </label>
                                         <select class="form-select @error('assigned_to') is-invalid @enderror" wire:model="assigned_to">
-                                            <option value="">Select User</option>
-                                            <option value="1">John Doe</option>
-                                            <option value="2">Sarah Smith</option>
-                                            <option value="3">Mike Johnson</option>
+                                            <option value="">Unassigned</option>
+                                            @foreach ($staffMembers as $member)
+                                                <option value="{{ $member->id }}">{{ $member->name }}</option>
+                                            @endforeach
                                         </select>
                                         @error('assigned_to')
                                             <div class="invalid-feedback">{{ $message }}</div>
