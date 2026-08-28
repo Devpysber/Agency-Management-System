@@ -27,6 +27,9 @@ class EnsureClientScope
             return $next($request);
         }
 
-        return redirect()->route('client.dashboard');
+        // Direct construction: the redirect() helper resolves to Livewire's
+        // Redirector inside a Livewire request, which is not a Symfony Response
+        // and breaks this method's `: Response` return type.
+        return new \Illuminate\Http\RedirectResponse(route('client.dashboard'));
     }
 }

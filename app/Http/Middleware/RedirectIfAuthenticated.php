@@ -22,7 +22,12 @@ class RedirectIfAuthenticated
             if (Auth::guard($guard)->check()) {
                 $user = Auth::guard($guard)->user();
 
-                return redirect($user && $user->role === 'client' ? '/client/dashboard' : '/dashboard');
+                // Direct construction: the redirect() helper resolves to
+                // Livewire's Redirector inside a Livewire request, which is not
+                // a Symfony Response and breaks this method's `: Response` hint.
+                return new \Illuminate\Http\RedirectResponse(
+                    $user && $user->role === 'client' ? '/client/dashboard' : '/dashboard'
+                );
             }
         }
 

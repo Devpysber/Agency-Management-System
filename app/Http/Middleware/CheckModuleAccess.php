@@ -71,8 +71,14 @@ class CheckModuleAccess
         };
 
         if (!$user->hasPermission($module, $action)) {
-            return redirect()->route('dashboard')
-                ->with('error', "You don't have permission to access {$module}.");
+            session()->flash('error', "You don't have permission to access {$module}.");
+
+            // Build the RedirectResponse directly. Inside a Livewire page
+            // request the redirect() / response()->redirectToRoute() helpers
+            // resolve to Livewire\Features\SupportRedirects\Redirector, which
+            // is NOT a Symfony Response and violates this method's `: Response`
+            // return type — a hard 500 for every permission-denied non-admin.
+            return new \Illuminate\Http\RedirectResponse(route('dashboard'));
         }
 
         return $next($request);
