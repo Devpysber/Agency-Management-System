@@ -192,8 +192,8 @@ new class extends Component
                                     @error('photo')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
-                                    @if ($photo)
-                                        <img src="{{ $photo->temporaryUrl() }}" class="img-fluid rounded mt-3" alt="Preview">
+                                    @if ($photo && method_exists($photo, 'temporaryUrl'))
+                                        <img src="{{ method_exists($photo, 'temporaryUrl') ? $photo->temporaryUrl() : '' }}" class="img-fluid rounded mt-3" alt="Preview">
                                     @endif
                                 </div>
                             </div>

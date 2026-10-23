@@ -264,7 +264,7 @@ new class extends Component
                                         <div class="row g-2 mt-2">
                                             @foreach ($newImages as $img)
                                                 <div class="col-6">
-                                                    <img src="{{ $img->temporaryUrl() }}" class="img-fluid rounded" alt="Preview">
+                                                    <img src="{{ method_exists($img, 'temporaryUrl') ? $img->temporaryUrl() : '' }}" class="img-fluid rounded" alt="Preview">
                                                 </div>
                                             @endforeach
                                         </div>

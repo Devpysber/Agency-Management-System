@@ -188,8 +188,8 @@ new class extends Component
                                     </h6>
                                 </div>
                                 <div class="card-body">
-                                    @if ($photo)
-                                        <img src="{{ $photo->temporaryUrl() }}" class="img-fluid rounded-circle mb-3" alt="Preview">
+                                    @if ($photo && method_exists($photo, 'temporaryUrl'))
+                                        <img src="{{ method_exists($photo, 'temporaryUrl') ? $photo->temporaryUrl() : '' }}" class="img-fluid rounded-circle mb-3" alt="Preview">
                                     @elseif ($existingAvatar)
                                         <img src="{{ asset('storage/' . $existingAvatar) }}" class="img-fluid rounded-circle mb-3" alt="Current avatar">
                                     @endif
