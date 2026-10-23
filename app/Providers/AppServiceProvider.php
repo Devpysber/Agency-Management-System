@@ -52,5 +52,32 @@ class AppServiceProvider extends ServiceProvider
 
         // Admin/staff changes -> client-portal notifications (and chat pings).
         \App\Support\AlertHooks::register();
+
+        // Dynamically apply database-configured SMTP settings if host is configured
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('company_settings')) {
+                $cs = \App\Models\CompanySetting::find(1);
+                if ($cs) {
+                    if (!empty($cs->mail_from_address)) {
+                        config(['mail.from.address' => $cs->mail_from_address]);
+                    }
+                    if (!empty($cs->mail_from_name)) {
+                        config(['mail.from.name' => $cs->mail_from_name]);
+                    }
+                    if (!empty($cs->smtp_host) && !empty($cs->smtp_port)) {
+                        config([
+                            'mail.default' => 'smtp',
+                            'mail.mailers.smtp.host' => $cs->smtp_host,
+                            'mail.mailers.smtp.port' => (int) $cs->smtp_port,
+                            'mail.mailers.smtp.username' => $cs->smtp_username ?: null,
+                            'mail.mailers.smtp.password' => $cs->smtp_password ?: null,
+                            'mail.mailers.smtp.scheme' => $cs->smtp_encryption ?: null,
+                        ]);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Failsafe during migration or bootstrap
+        }
     }
 }
