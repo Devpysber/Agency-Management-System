@@ -36,6 +36,7 @@ new class extends Component
     public $smtp_username;
     public $smtp_password;
     public $smtp_encryption;
+    public $test_email;
 
     // Social
     public $social_facebook;
@@ -231,6 +232,30 @@ new class extends Component
         $this->seo_og_image = null;
 
         $this->dispatch('toast', message: 'Settings saved.', type: 'success');
+    }
+
+    public function sendTestEmail()
+    {
+        if (!auth()->user()->hasPermission('Settings', 'Edit')) {
+            $this->dispatch('toast', message: "You don't have permission to test email.", type: 'error');
+            return;
+        }
+
+        $this->validate([
+            'test_email' => 'required|email|max:255',
+        ]);
+
+        try {
+            $target = $this->test_email;
+            \Illuminate\Support\Facades\Mail::raw("Hello!\n\nThis is a test email sent from your " . ($this->business_name ?: config('app.name')) . " CRM System to confirm your email delivery configuration is working correctly.\n\nTimestamp: " . now()->toDayDateTimeString(), function ($message) use ($target) {
+                $message->to($target)
+                        ->subject('Test Email from ' . ($this->business_name ?: config('app.name')));
+            });
+
+            $this->dispatch('toast', message: "Test email successfully sent to {$target}!", type: 'success');
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', message: 'Failed to send test email: ' . $e->getMessage(), type: 'error');
+        }
     }
 
     public function render()
@@ -476,6 +501,27 @@ new class extends Component
                                         <option value="ssl">SSL</option>
                                     </select>
                                     @error('smtp_encryption') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div class="card bg-light border p-3">
+                                <h6 class="fw-semibold mb-2"><i class="fas fa-paper-plane text-primary me-2"></i>Send Test Email</h6>
+                                <p class="text-muted small mb-3">Verify your system mail transport and outbound email delivery to any recipient.</p>
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-md-8">
+                                        <input type="email" class="form-control form-control-sm @error('test_email') is-invalid @enderror" 
+                                               wire:model="test_email" 
+                                               placeholder="Recipient address (e.g. yourname@example.com)">
+                                        @error('test_email') <span class="text-danger small">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="button" class="btn btn-sm btn-outline-primary w-100" wire:click="sendTestEmail" wire:loading.attr="disabled">
+                                            <span wire:loading.remove wire:target="sendTestEmail"><i class="fas fa-paper-plane me-1"></i> Send Test</span>
+                                            <span wire:loading wire:target="sendTestEmail"><i class="fas fa-spinner fa-spin me-1"></i> Sending...</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

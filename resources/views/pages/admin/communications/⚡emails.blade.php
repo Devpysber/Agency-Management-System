@@ -22,6 +22,7 @@ new class extends Component
     public $search = '';
     public $filterStatus = '';
     public $showModal = false;
+    public $actually_send = false;
 
     protected $rules = [
         'subject' => 'required|string|max:255',
@@ -106,6 +107,7 @@ new class extends Component
         $this->occurred_at = now()->format('Y-m-d\TH:i');
         $this->contact_id = null;
         $this->staff_id = null;
+        $this->actually_send = false;
         $this->resetErrorBag();
     }
 
@@ -138,6 +140,27 @@ new class extends Component
             $item->created_by = auth()->id();
         }
         $item->save();
+
+        if ($this->actually_send && $this->direction === 'outbound' && $this->contact_id) {
+            $contact = Contact::find($this->contact_id);
+            if ($contact && !empty($contact->email)) {
+                try {
+                    $recipientEmail = $contact->email;
+                    $emailSubject = $this->subject;
+                    $emailBody = $this->notes ?: '(No content)';
+                    \Illuminate\Support\Facades\Mail::raw($emailBody, function ($message) use ($recipientEmail, $emailSubject) {
+                        $message->to($recipientEmail)
+                                ->subject($emailSubject);
+                    });
+                    session()->flash('success', "Email sent to {$recipientEmail} and logged successfully!");
+                } catch (\Throwable $e) {
+                    session()->flash('warning', "Email logged, but mail delivery failed: " . $e->getMessage());
+                }
+                $this->showModal = false;
+                $this->resetForm();
+                return;
+            }
+        }
 
         session()->flash('success', 'Email logged successfully!');
         $this->showModal = false;
@@ -429,16 +452,31 @@ new class extends Component
                                 </select>
                             </div>
                             <div class="col-12">
-                                <label class="form-label fw-medium">Notes</label>
-                                <textarea class="form-control" wire:model="notes" rows="3" placeholder="Optional notes"></textarea>
+                                <label class="form-label fw-medium">Notes / Email Body</label>
+                                <textarea class="form-control" wire:model="notes" rows="4" placeholder="Enter email notes or content to send..."></textarea>
                             </div>
+                            @if ($direction === 'outbound' && $contact_id)
+                                <div class="col-12">
+                                    <div class="form-check form-switch p-2 bg-light rounded border">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" id="actuallySendMail" wire:model="actually_send">
+                                        <label class="form-check-label fw-medium small" for="actuallySendMail">
+                                            <i class="fas fa-paper-plane text-primary me-1"></i> Send this email directly to contact's address now
+                                        </label>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer flex-wrap gap-2">
                     <button class="btn btn-secondary" wire:click="closeModal"><i class="fas fa-times"></i> Cancel</button>
-                    <button class="btn btn-primary" wire:click="save">
-                        <i class="fas {{ $commId ? 'fa-save' : 'fa-plus' }}"></i> {{ $commId ? 'Update' : 'Log Email' }}
+                    <button class="btn btn-primary" wire:click="save" wire:loading.attr="disabled">
+                        <span wire:loading.remove wire:target="save">
+                            <i class="fas {{ $commId ? 'fa-save' : ($actually_send ? 'fa-paper-plane' : 'fa-plus') }}"></i> {{ $commId ? 'Update' : ($actually_send ? 'Send & Log Email' : 'Log Email') }}
+                        </span>
+                        <span wire:loading wire:target="save">
+                            <i class="fas fa-spinner fa-spin"></i> Processing...
+                        </span>
                     </button>
                 </div>
             </div>

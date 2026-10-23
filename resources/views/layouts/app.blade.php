@@ -158,6 +158,9 @@
             </main>
         </div>
 
+        <!-- Mobile Drawer Backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+
         <!-- Footer -->
         <footer class="footer">
             <div class="footer-content">
@@ -220,30 +223,23 @@
         }
         if (document.readyState !== 'loading') restoreSidebar();
         document.addEventListener('DOMContentLoaded', restoreSidebar);
-        document.addEventListener('livewire:navigated', restoreSidebar);
+        document.addEventListener('livewire:navigated', function () {
+            restoreSidebar();
+            toggleSidebar(false);
+        });
 
         // Toggle sidebar visibility on mobile
-        function toggleSidebar() {
+        function toggleSidebar(forceState) {
             const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('show');
-        }
-
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function(event) {
-            const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.querySelector('.sidebar-toggle');
-            const isClickInside = sidebar.contains(event.target) || toggleBtn.contains(event.target);
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if (!sidebar) return;
             
-            if (!isClickInside && window.innerWidth <= 768) {
-                sidebar.classList.remove('show');
+            const isOpen = forceState !== undefined ? forceState : !sidebar.classList.contains('show');
+            sidebar.classList.toggle('show', isOpen);
+            if (backdrop) {
+                backdrop.classList.toggle('show', isOpen);
             }
-        });
-
-        // All sections start closed
-        document.addEventListener('DOMContentLoaded', function() {
-            // All sections remain closed by default
-            // No open classes added
-        });
+        }
 
         // ---- Admin motion: entrance animations, scroll-reveal, stat count-up ----
         (function () {
