@@ -1384,6 +1384,7 @@ new class extends Component
     </div>
 </div>
 
+@script
 <script>
     (function() {
         let charts = {};
@@ -1503,3 +1504,4 @@ new class extends Component
         document.addEventListener('livewire:navigated', function () { tries = 0; bootCharts(); });
     })();
 </script>
+@endscript

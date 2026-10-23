@@ -274,7 +274,7 @@ new class extends Component
                 <p>Manage your company's business, contact, email, social, footer, SEO and other settings.</p>
             </div>
             <div class="header-actions">
-                <button type="button" wire:click="save" class="btn btn-primary">
+                <button type="submit" form="settingsForm" class="btn btn-primary">
                     <i class="fas fa-save" wire:loading.remove wire:target="save"></i>
                     <i class="fas fa-spinner fa-spin" wire:loading wire:target="save"></i>
                     Save Settings
@@ -344,7 +344,7 @@ new class extends Component
                 </ul>
             </div>
             <div class="card-body">
-                <form wire:submit.prevent="save">
+                <form id="settingsForm" wire:submit.prevent="save">
                     <div class="tab-content" id="generalSettingsTabsContent">
 
                         <!-- Business -->
