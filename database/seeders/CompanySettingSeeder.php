@@ -12,6 +12,12 @@ class CompanySettingSeeder extends Seeder
      */
     public function run(): void
     {
+        $existing = CompanySetting::find(1);
+        if ($existing && !in_array($existing->business_name, ['Agency ERP Demo', 'CRM System', ''], true)) {
+            // Preserve user-configured business profile (e.g. Psyber Technologies)
+            return;
+        }
+
         CompanySetting::updateOrCreate(['id' => 1], [
             // Business
             'business_name' => 'Agency ERP Demo',
