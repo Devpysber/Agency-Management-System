@@ -3,6 +3,7 @@
 use Livewire\Component;
 use App\Models\Project;
 use App\Models\company;
+use App\Models\staff;
 
 new class extends Component
 {
@@ -15,6 +16,7 @@ new class extends Component
     public $progress = 0;
     public $budget;
     public $submission_due_at;
+    public array $team = [];
 
     protected $rules = [
         'name' => 'required|string|max:255',
@@ -26,6 +28,8 @@ new class extends Component
         'progress' => 'nullable|integer|min:0|max:100',
         'budget' => 'nullable|numeric|min:0',
         'submission_due_at' => 'nullable|date',
+        'team' => 'array',
+        'team.*' => 'integer|exists:staff,id',
     ];
 
     protected $messages = [
@@ -38,7 +42,7 @@ new class extends Component
     {
         $this->validate();
 
-        Project::create([
+        $project = Project::create([
             'name' => $this->name,
             'company_id' => $this->company_id ?: null,
             'description' => $this->description,
@@ -50,6 +54,10 @@ new class extends Component
             'submission_due_at' => $this->submission_due_at ?: null,
             'created_by' => auth()->id(),
         ]);
+
+        if (!empty($this->team)) {
+            $project->staff()->sync($this->team);
+        }
 
         session()->flash('success', 'Project created successfully');
 
@@ -84,6 +92,7 @@ new class extends Component
     {
         return $this->view([
             'companies' => company::orderBy('company_name')->get(),
+            'staffList' => staff::orderBy('name')->get(['id', 'name', 'designation']),
         ]);
     }
 };
@@ -232,6 +241,30 @@ new class extends Component
                             @error('submission_due_at')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">
+                                <i class="fas fa-users me-1 text-muted"></i>
+                                Assigned Employees
+                                <span class="badge bg-primary ms-1">{{ count($team) }}</span>
+                            </label>
+                            <div class="row g-2">
+                                @foreach ($staffList as $s)
+                                    @php $on = in_array($s->id, $team); @endphp
+                                    <div class="col-md-4 col-lg-3">
+                                        <label class="d-flex align-items-center gap-2 p-2 rounded border w-100"
+                                               style="cursor:pointer;{{ $on ? 'border-color:#4f46e5;background:#f5f3ff;' : '' }}">
+                                            <input type="checkbox" class="form-check-input mt-0" value="{{ $s->id }}" wire:model.live="team">
+                                            <span style="min-width:0;">
+                                                <span class="d-block fw-semibold text-truncate" style="font-size:13px;">{{ $s->name }}</span>
+                                                <small class="text-muted">{{ $s->designation ?: 'Employee' }}</small>
+                                            </span>
+                                        </label>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <small class="text-muted d-block mt-1">Assigned employees can update progress and chat directly with the client in the project conversation.</small>
+                            @error('team')<span class="text-danger">{{ $message }}</span>@enderror
                         </div>
                     </div>
                 </form>
