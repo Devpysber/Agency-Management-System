@@ -100,7 +100,7 @@ new class extends Component
         $this->seo_title = $this->settings->seo_title;
         $this->seo_description = $this->settings->seo_description;
         $this->seo_keywords = $this->settings->seo_keywords;
-        $this->seo_og_image = $this->settings->seo_og_image;
+        $this->seo_og_image = null;
 
         $this->maintenance_mode = (bool) $this->settings->maintenance_mode;
         $this->google_analytics_id = $this->settings->google_analytics_id;
@@ -370,7 +370,7 @@ new class extends Component
                                     @endif
                                     <input type="file" class="form-control @error('business_logo') is-invalid @enderror" wire:model="business_logo">
                                     @error('business_logo') <span class="text-danger">{{ $message }}</span> @enderror
-                                    @if ($business_logo)
+                                    @if ($business_logo && method_exists($business_logo, 'temporaryUrl'))
                                         <img src="{{ $business_logo->temporaryUrl() }}" class="rounded border mt-2" style="max-height:60px;" alt="Preview">
                                     @endif
                                 </div>
@@ -378,12 +378,12 @@ new class extends Component
                                     <label class="form-label fw-medium">Business Favicon</label>
                                     @if ($settings->business_favicon && !$business_favicon)
                                         <div class="mb-2">
-                                            <img src="{{ asset('storage/' . $settings->business_favicon) }}" class="rounded border" style="max-height:40px;" alt="Favicon">
+                                             <img src="{{ asset('storage/' . $settings->business_favicon) }}" class="rounded border" style="max-height:40px;" alt="Favicon">
                                         </div>
                                     @endif
                                     <input type="file" class="form-control @error('business_favicon') is-invalid @enderror" wire:model="business_favicon">
                                     @error('business_favicon') <span class="text-danger">{{ $message }}</span> @enderror
-                                    @if ($business_favicon)
+                                    @if ($business_favicon && method_exists($business_favicon, 'temporaryUrl'))
                                         <img src="{{ $business_favicon->temporaryUrl() }}" class="rounded border mt-2" style="max-height:40px;" alt="Preview">
                                     @endif
                                 </div>
@@ -603,7 +603,7 @@ new class extends Component
                                     @endif
                                     <input type="file" class="form-control @error('seo_og_image') is-invalid @enderror" wire:model="seo_og_image">
                                     @error('seo_og_image') <span class="text-danger">{{ $message }}</span> @enderror
-                                    @if ($seo_og_image)
+                                    @if ($seo_og_image && method_exists($seo_og_image, 'temporaryUrl'))
                                         <img src="{{ $seo_og_image->temporaryUrl() }}" class="rounded border mt-2" style="max-height:80px;" alt="Preview">
                                     @endif
                                 </div>
