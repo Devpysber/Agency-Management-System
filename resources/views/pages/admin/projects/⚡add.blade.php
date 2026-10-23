@@ -56,6 +56,30 @@ new class extends Component
         return redirect()->route('projects.all');
     }
 
+    public $showNewCompanyModal = false;
+    public $new_company_name;
+    public $new_company_email;
+    public $new_company_phone;
+
+    public function quickCreateCompany()
+    {
+        $this->validate([
+            'new_company_name' => 'required|string|max:255',
+            'new_company_email' => 'nullable|email|max:255',
+            'new_company_phone' => 'nullable|string|max:50',
+        ]);
+
+        $created = company::create([
+            'company_name' => $this->new_company_name,
+            'company_email' => $this->new_company_email ?: null,
+            'company_phone' => $this->new_company_phone ?: null,
+        ]);
+
+        $this->company_id = $created->id;
+        $this->reset(['new_company_name', 'new_company_email', 'new_company_phone', 'showNewCompanyModal']);
+        session()->flash('company_created', "Company '{$created->company_name}' created and selected!");
+    }
+
     public function render()
     {
         return $this->view([
@@ -110,16 +134,24 @@ new class extends Component
                             @enderror
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-medium">
-                                <i class="fas fa-building me-1 text-muted"></i>
-                                Company
-                            </label>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-medium mb-0">
+                                    <i class="fas fa-building me-1 text-muted"></i>
+                                    Company
+                                </label>
+                                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" wire:click="$set('showNewCompanyModal', true)">
+                                    <i class="fas fa-plus-circle me-1"></i> New Company
+                                </button>
+                            </div>
                             <select class="form-select" wire:model="company_id">
                                 <option value="">Select Company</option>
                                 @foreach ($companies as $c)
                                     <option value="{{ $c->id }}">{{ $c->company_name }}</option>
                                 @endforeach
                             </select>
+                            @if(session()->has('company_created'))
+                                <span class="text-success small d-block mt-1"><i class="fas fa-check-circle me-1"></i> {{ session('company_created') }}</span>
+                            @endif
                             @error('company_id')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
@@ -206,4 +238,40 @@ new class extends Component
             </div>
         </div>
     </div>
+
+    <!-- Quick Company Modal -->
+    @if($showNewCompanyModal)
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-building text-primary me-2"></i>Quick Add Company</h5>
+                    <button type="button" class="btn-close" wire:click="$set('showNewCompanyModal', false)"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Company Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control @error('new_company_name') is-invalid @enderror" wire:model="new_company_name" placeholder="Acme Corp">
+                        @error('new_company_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Company Email</label>
+                        <input type="email" class="form-control @error('new_company_email') is-invalid @enderror" wire:model="new_company_email" placeholder="contact@acme.com">
+                        @error('new_company_email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Phone</label>
+                        <input type="text" class="form-control" wire:model="new_company_phone" placeholder="+1 (555) 000-0000">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" wire:click="$set('showNewCompanyModal', false)">Cancel</button>
+                    <button type="button" class="btn btn-primary" wire:click="quickCreateCompany">
+                        <i class="fas fa-check me-1"></i> Create & Select
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

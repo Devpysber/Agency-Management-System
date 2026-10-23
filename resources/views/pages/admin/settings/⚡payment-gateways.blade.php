@@ -53,6 +53,28 @@ new class extends Component
         $this->resetErrorBag();
     }
 
+    public function addPresetGateway(string $name)
+    {
+        if (!auth()->user()->hasPermission('Settings', 'Create')) {
+            session()->flash('error', "You don't have permission to create payment gateways.");
+            return;
+        }
+
+        $exists = PaymentGateway::where('name', $name)->exists();
+        if ($exists) {
+            session()->flash('warning', "{$name} is already added in your gateways list.");
+            return;
+        }
+
+        PaymentGateway::create([
+            'name' => $name,
+            'is_active' => true,
+        ]);
+
+        session()->flash('success', "{$name} payment gateway added successfully!");
+        $this->fetchGateways();
+    }
+
     public function save()
     {
         if (!auth()->user()->hasPermission('Settings', $this->gatewayId ? 'Edit' : 'Create')) {
@@ -152,12 +174,21 @@ new class extends Component
         <!-- Gateways Table -->
         <div class="card">
             <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h5 class="fw-semibold mb-0">
                         <i class="fas fa-credit-card text-primary me-2"></i>
                         Gateways List
                     </h5>
-                    <span class="badge bg-primary">{{ $gateways->count() }} Gateways</span>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="text-muted small me-1">Quick Add:</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" wire:click="addPresetGateway('Razorpay')">
+                            <i class="fas fa-bolt me-1"></i> + Razorpay
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success py-0 px-2" wire:click="addPresetGateway('Cashfree')">
+                            <i class="fas fa-bolt me-1"></i> + Cashfree
+                        </button>
+                        <span class="badge bg-primary ms-2">{{ $gateways->count() }} Gateways</span>
+                    </div>
                 </div>
             </div>
             <div class="card-body">
