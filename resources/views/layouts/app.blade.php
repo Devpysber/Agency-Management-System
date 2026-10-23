@@ -13,9 +13,9 @@
                 </a>
             </div>
             <div class="header-right">
-                <div class="search-box">
+                <div class="search-box" style="cursor: pointer;" onclick="Livewire.dispatch('openGlobalSearch')" title="Quick search (Ctrl+K)">
                     <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search...">
+                    <span style="font-size: 13px; color: var(--text-soft);">Search... <kbd style="font-size: 10px; padding: 2px 5px; background: var(--surface-3); border: 1px solid var(--border); border-radius: 4px; color: var(--text-faint);">Ctrl K</kbd></span>
                 </div>
                 <div id="adminClock" style="display:flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-soft);">
                     <i class="fas fa-clock"></i>
@@ -359,6 +359,7 @@
     @auth
         <livewire:event-reminders />
         <livewire:absence-popup />
+        <livewire:global-search />
     @endauth
 
     {{-- Global toast popups (replace the old inline .alert-flash banners) --}}

@@ -778,6 +778,28 @@
                 align-items: flex-start;
                 gap: 10px;
             }
+
+            /* Responsive form filters across all CRM index pages */
+            .card .row.g-3 {
+                --bs-gutter-y: 0.75rem;
+            }
+
+            /* Prevent table overflow clipping and enable soft borders */
+            .table th, .table td {
+                padding: 10px 12px;
+                white-space: nowrap;
+                vertical-align: middle;
+            }
+
+            /* Full-width responsive modal sheets on mobile */
+            .modal-dialog {
+                margin: 0.5rem;
+                max-width: 100%;
+            }
+
+            .modal-content {
+                border-radius: 14px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -786,12 +808,30 @@
             }
             
             .content {
-                padding: 12px;
+                padding: 10px 8px;
             }
             
             .btn {
-                padding: 8px 14px;
+                padding: 8px 12px;
                 font-size: 13px;
+            }
+
+            .stat-card {
+                padding: 14px;
+            }
+
+            .stat-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+
+            .stat-number {
+                font-size: 20px;
+            }
+
+            .page-header h1 {
+                font-size: 22px;
             }
         }
 
