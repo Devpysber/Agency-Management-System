@@ -1382,126 +1382,118 @@ new class extends Component
                 @include('pages.admin.dashboard.generic')
         @endswitch
     </div>
+
+    <script>
+        (function() {
+            let charts = {};
+
+            function destroyChart(key) {
+                if (charts[key]) {
+                    charts[key].destroy();
+                    delete charts[key];
+                }
+                const el = document.getElementById(key);
+                const existing = el && window.Chart && Chart.getChart(el);
+                if (existing) existing.destroy();
+            }
+
+            function makeDoughnut(id, labels, values, colors) {
+                const canvas = document.getElementById(id);
+                if (!canvas || !labels || !labels.length) return;
+                destroyChart(id);
+                charts[id] = new Chart(canvas.getContext('2d'), {
+                    type: 'doughnut',
+                    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#ffffff' }] },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '65%',
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16, font: { size: 12 } } } }
+                    }
+                });
+            }
+
+            function makeBar(id, labels, values, colors, currency = false) {
+                const canvas = document.getElementById(id);
+                if (!canvas || !labels || !labels.length) return;
+                destroyChart(id);
+                charts[id] = new Chart(canvas.getContext('2d'), {
+                    type: 'bar',
+                    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, maxBarThickness: 40 }] },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: currency ? { callbacks: { label: (c) => '$' + Number(c.parsed.y).toLocaleString() } } : {}
+                        },
+                        scales: {
+                            y: { beginAtZero: true, ticks: currency ? { callback: (v) => '$' + Number(v).toLocaleString() } : {}, grid: { color: '#e5e7eb' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+
+            function makeLine(id, labels, values, color, currency = false) {
+                const canvas = document.getElementById(id);
+                if (!canvas || !labels || !labels.length) return;
+                destroyChart(id);
+                charts[id] = new Chart(canvas.getContext('2d'), {
+                    type: 'line',
+                    data: { labels, datasets: [{ data: values, borderColor: color, backgroundColor: color + '22', fill: true, tension: 0.35, pointRadius: 3 }] },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: currency ? { callbacks: { label: (c) => '$' + Number(c.parsed.y).toLocaleString() } } : {}
+                        },
+                        scales: {
+                            y: { beginAtZero: true, ticks: currency ? { callback: (v) => '$' + Number(v).toLocaleString() } : {}, grid: { color: '#e5e7eb' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+
+            function renderAllCharts() {
+                if (typeof Chart === 'undefined') return;
+
+                @if($type === 'ceo' || $type === 'admin')
+                    makeLine('revenueTrendChart', @json($revenueTrendLabels ?? []), @json($revenueTrendValues ?? []), '#10B981', true);
+                    makeBar('dealStageChart', @json($stageLabels ?? []), @json($stageValues ?? []), @json($stageColors ?? []));
+                @elseif($type === 'project-manager')
+                    makeDoughnut('projectStatusChart', @json($projectStatusLabels ?? []), @json($projectStatusValues ?? []), @json($projectStatusColors ?? []));
+                @elseif($type === 'developer')
+                    makeDoughnut('taskStatusChart', @json($taskStatusLabels ?? []), @json($taskStatusValues ?? []), @json($taskStatusColors ?? []));
+                    makeBar('completionTrendChart', @json($completionTrendLabels ?? []), @json($completionTrendValues ?? []), '#4F46E5');
+                @elseif($type === 'designer')
+                    makeDoughnut('taskStatusChart', @json($taskStatusLabels ?? []), @json($taskStatusValues ?? []), @json($taskStatusColors ?? []));
+                @elseif($type === 'sales-executive')
+                    makeBar('dealStageChart', @json($stageLabels ?? []), @json($stageValues ?? []), @json($stageColors ?? []));
+                @elseif($type === 'coo')
+                    makeDoughnut('taskStatusChart', @json($taskStatusLabels ?? []), @json($taskStatusValues ?? []), @json($taskStatusColors ?? []));
+                @elseif($type === 'bdm')
+                    makeBar('dealStageChart', @json($stageLabels ?? []), @json($stageValues ?? []), @json($stageColors ?? []));
+                @endif
+            }
+
+            let tries = 0;
+            function bootCharts() {
+                if (typeof Chart !== 'undefined') {
+                    requestAnimationFrame(function () { requestAnimationFrame(renderAllCharts); });
+                    return;
+                }
+                if (tries++ < 40) setTimeout(bootCharts, 60);
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', bootCharts);
+            } else {
+                bootCharts();
+            }
+            document.addEventListener('livewire:navigated', function () { tries = 0; bootCharts(); });
+        })();
+    </script>
 </div>
-
-@script
-<script>
-    (function() {
-        let charts = {};
-
-        function destroyChart(key) {
-            if (charts[key]) {
-                charts[key].destroy();
-                delete charts[key];
-            }
-            // A prior page visit (wire:ignore keeps the canvas) may still own it.
-            const el = document.getElementById(key);
-            const existing = el && window.Chart && Chart.getChart(el);
-            if (existing) existing.destroy();
-        }
-
-        function makeDoughnut(id, labels, values, colors) {
-            const canvas = document.getElementById(id);
-            if (!canvas || !labels.length) return;
-            destroyChart(id);
-            charts[id] = new Chart(canvas.getContext('2d'), {
-                type: 'doughnut',
-                data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#ffffff' }] },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '65%',
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16, font: { size: 12 } } } }
-                }
-            });
-        }
-
-        function makeBar(id, labels, values, colors, currency = false) {
-            const canvas = document.getElementById(id);
-            if (!canvas || !labels.length) return;
-            destroyChart(id);
-            charts[id] = new Chart(canvas.getContext('2d'), {
-                type: 'bar',
-                data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, maxBarThickness: 40 }] },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: currency ? { callbacks: { label: (c) => '$' + Number(c.parsed.y).toLocaleString() } } : {}
-                    },
-                    scales: {
-                        y: { beginAtZero: true, ticks: currency ? { callback: (v) => '$' + Number(v).toLocaleString() } : {}, grid: { color: '#e5e7eb' } },
-                        x: { grid: { display: false } }
-                    }
-                }
-            });
-        }
-
-        function makeLine(id, labels, values, color, currency = false) {
-            const canvas = document.getElementById(id);
-            if (!canvas || !labels.length) return;
-            destroyChart(id);
-            charts[id] = new Chart(canvas.getContext('2d'), {
-                type: 'line',
-                data: { labels, datasets: [{ data: values, borderColor: color, backgroundColor: color + '22', fill: true, tension: 0.35, pointRadius: 3 }] },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: currency ? { callbacks: { label: (c) => '$' + Number(c.parsed.y).toLocaleString() } } : {}
-                    },
-                    scales: {
-                        y: { beginAtZero: true, ticks: currency ? { callback: (v) => '$' + Number(v).toLocaleString() } : {}, grid: { color: '#e5e7eb' } },
-                        x: { grid: { display: false } }
-                    }
-                }
-            });
-        }
-
-        window.initDashboardCharts = function() {
-            if (typeof Chart === 'undefined') return;
-
-            @if($type === 'ceo')
-                makeLine('revenueTrendChart', @json($revenueTrendLabels), @json($revenueTrendValues), '#10B981', true);
-                makeBar('dealStageChart', @json($stageLabels), @json($stageValues), @json($stageColors));
-            @elseif($type === 'admin')
-                makeLine('revenueTrendChart', @json($revenueTrendLabels), @json($revenueTrendValues), '#10B981', true);
-                makeBar('dealStageChart', @json($stageLabels), @json($stageValues), @json($stageColors));
-            @elseif($type === 'project-manager')
-                makeDoughnut('projectStatusChart', @json($projectStatusLabels), @json($projectStatusValues), @json($projectStatusColors));
-            @elseif($type === 'developer')
-                makeDoughnut('taskStatusChart', @json($taskStatusLabels), @json($taskStatusValues), @json($taskStatusColors));
-                makeBar('completionTrendChart', @json($completionTrendLabels), @json($completionTrendValues), '#4F46E5');
-            @elseif($type === 'designer')
-                makeDoughnut('taskStatusChart', @json($taskStatusLabels), @json($taskStatusValues), @json($taskStatusColors));
-            @elseif($type === 'sales-executive')
-                makeBar('dealStageChart', @json($stageLabels), @json($stageValues), @json($stageColors));
-            @elseif($type === 'coo')
-                makeDoughnut('taskStatusChart', @json($taskStatusLabels), @json($taskStatusValues), @json($taskStatusColors));
-            @elseif($type === 'bdm')
-                makeBar('dealStageChart', @json($stageLabels), @json($stageValues), @json($stageColors));
-            @endif
-        };
-
-        // Chart.js loads from the layout <head>; wait for it, then paint on the
-        // next frame so the canvas has its final size.
-        let tries = 0;
-        function bootCharts() {
-            if (typeof Chart !== 'undefined') {
-                requestAnimationFrame(function () { requestAnimationFrame(window.initDashboardCharts); });
-                return;
-            }
-            if (tries++ < 40) setTimeout(bootCharts, 60);
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', bootCharts);
-        } else {
-            bootCharts();
-        }
-        document.addEventListener('livewire:navigated', function () { tries = 0; bootCharts(); });
-    })();
-</script>
-@endscript
