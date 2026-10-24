@@ -51,6 +51,7 @@ new class extends Component
     
     // Status
     public $status = 'active';
+    public $create_portal_login = true;
     
     public $companies;
     public $staffMembers;
@@ -133,6 +134,35 @@ new class extends Component
         $contact->assigned_to = $this->assigned_to ?: null;
         $contact->status = $this->status;
         $contact->save();
+
+        // Send portal credentials automatically if checked
+        if ($this->create_portal_login && !empty($this->email)) {
+            $existingUser = \App\Models\User::where('email', $this->email)->first();
+            if (!$existingUser) {
+                $password = \Illuminate\Support\Str::password(10, true, true, false, false);
+                $user = \App\Models\User::create([
+                    'name' => $contact->full_name ?: $contact->email,
+                    'email' => $contact->email,
+                    'password' => bcrypt($password),
+                    'role' => 'client',
+                ]);
+                $contact->user_id = $user->id;
+                $contact->save();
+
+                try {
+                    \Illuminate\Support\Facades\Mail::to($contact->email)->send(new \App\Mail\ClientPortalCredentials(
+                        clientName: $contact->full_name ?: $contact->email,
+                        email: $contact->email,
+                        password: $password,
+                        loginUrl: route('login'),
+                    ));
+                    session()->flash('success', 'Contact created and Client Portal login sent to ' . $contact->email . '!');
+                } catch (\Throwable $e) {
+                    session()->flash('warning', 'Contact created, but email failed: ' . $e->getMessage());
+                }
+                return redirect()->route('contacts.all');
+            }
+        }
 
         session()->flash('success', 'Contact created successfully!');
         return redirect()->route('contacts.all');
@@ -586,6 +616,28 @@ new class extends Component
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Client Portal Access -->
+                            <div class="card mb-3 border-primary shadow-sm">
+                                <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+                                    <h6 class="fw-semibold mb-0 text-white">
+                                        <i class="fas fa-key me-2"></i>
+                                        Client Portal Access
+                                    </h6>
+                                    <span class="badge bg-light text-primary small">Recommended</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="createPortalLogin" wire:model="create_portal_login">
+                                        <label class="form-check-label fw-semibold" for="createPortalLogin">
+                                            Send Client Portal Login Credentials
+                                        </label>
+                                    </div>
+                                    <small class="text-muted d-block">
+                                        Automatically generates a secure login and emails portal credentials with access to view projects, progress, milestones, and payments.
+                                    </small>
                                 </div>
                             </div>
 
