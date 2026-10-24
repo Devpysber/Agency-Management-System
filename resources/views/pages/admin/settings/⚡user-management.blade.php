@@ -28,25 +28,34 @@ new class extends Component
     public $generatedPassword = null;
     public $generatedEmail = null;
 
-    // Canonical designation roster (docs/rbac-spec.md) — a free-text field
-    // here risks a typo silently falling through hasPermission() as "no
-    // permission" (the exact failure mode that spec warns about), since
-    // permissions are matched by exact Role name = staff.designation.
-    public $designationOptions = [
-        'Staff',
-        'CEO', 'COO',
-        'HR & Admin Manager',
-        'Account Manager', 'Business Development Manager', 'Sales Executive',
-        'Project Manager', 'Project Coordinator',
-        'Creative Director', 'UI/UX Designer', 'Graphic Designer', 'Designer',
-        'Tech Lead', 'Developer', 'Developer Intern',
-        'QA Engineer', 'DevOps Engineer',
-        'AI/ML Engineer', 'AI/ML Intern', 'Data Analyst',
-        'Marketing Manager', 'SEO Specialist', 'Social Media Manager',
-        'Content Writer', 'Performance Marketing Specialist',
-        'Finance Manager', 'Accountant', 'Finance Executive',
-        'Intern',
-    ];
+    public $designationOptions = [];
+
+    public function mount()
+    {
+        $this->loadRolesAndDesignations();
+    }
+
+    public function loadRolesAndDesignations()
+    {
+        $dbRoles = \App\Models\Role::orderBy('name')->pluck('name')->toArray();
+        $fallback = [
+            'Staff',
+            'CEO', 'COO',
+            'HR & Admin Manager',
+            'Account Manager', 'Business Development Manager', 'Sales Executive',
+            'Project Manager', 'Project Coordinator',
+            'Creative Director', 'UI/UX Designer', 'Graphic Designer', 'Designer',
+            'Tech Lead', 'Developer', 'Developer Intern',
+            'QA Engineer', 'DevOps Engineer',
+            'AI/ML Engineer', 'AI/ML Intern', 'Data Analyst',
+            'Marketing Manager', 'SEO Specialist', 'Social Media Manager',
+            'Content Writer', 'Performance Marketing Specialist',
+            'Finance Manager', 'Accountant', 'Finance Executive',
+            'Intern',
+        ];
+        $this->designationOptions = array_values(array_unique(array_filter(array_merge($dbRoles, $fallback), fn ($r) => !in_array(strtolower($r), ['admin', 'client']))));
+        sort($this->designationOptions);
+    }
 
     protected function rules()
     {
@@ -482,14 +491,19 @@ new class extends Component
                                         Links this client login to the project's company as a portal contact.
                                     @endif
                                 </div>
-                                @if ($role === 'staff')
-                                    <label class="form-label fw-medium mt-2"><i class="fas fa-briefcase me-1 text-muted"></i> Designation</label>
+                                @if ($role === 'staff' || $role === 'manager')
+                                    <label class="form-label fw-medium mt-2 d-flex justify-content-between align-items-center">
+                                        <span><i class="fas fa-briefcase me-1 text-muted"></i> Designation / Assigned Role</span>
+                                        <a href="{{ route('settings.roles-permissions') }}" target="_blank" class="small text-decoration-none">
+                                            <i class="fas fa-plus-circle"></i> Create New Role
+                                        </a>
+                                    </label>
                                     <select class="form-select" wire:model="designation">
                                         @foreach ($designationOptions as $option)
                                             <option value="{{ $option }}">{{ $option }}</option>
                                         @endforeach
                                     </select>
-                                    <div class="form-text">Determines what they can see and do — see Roles &amp; Permissions.</div>
+                                    <div class="form-text">Determines exact permissions in the system — fully customizable under <a href="{{ route('settings.roles-permissions') }}" target="_blank">Roles &amp; Permissions</a>.</div>
                                 @endif
                             </div>
                         @endif
