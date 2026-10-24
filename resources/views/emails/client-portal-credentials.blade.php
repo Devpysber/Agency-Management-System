@@ -1,22 +1,25 @@
 <x-mail::message>
 # Welcome to the Client Portal
 
-Hi {{ $clientName }},
+Dear **{{ $clientName }}**,
 
-An account has been created for you on the client portal. You can use it to view your
-company's projects, estimates, quotations, and payments.
+Your client portal account has been prepared and activated. You can use your secure portal to review your company's projects, estimates, quotations, shared files, and communicate directly with your project team.
 
-Use the credentials below to log in.
+<x-mail::panel>
+**Portal URL:** [{{ $loginUrl }}]({{ $loginUrl }})  
+**Username / Email:** `{{ $email }}`  
+**Temporary Password:** `{{ $password }}`
+</x-mail::panel>
 
-**Email:** {{ $email }}
-**Temporary Password:** {{ $password }}
-
-<x-mail::button :url="$loginUrl">
-Log In
+<x-mail::button :url="$loginUrl" color="primary">
+Access Client Portal
 </x-mail::button>
 
-For security, please log in and change your password as soon as possible.
+> [!NOTE]  
+> For your account security, we recommend changing your password right after your initial login.
 
-Thanks,<br>
-{{ config('app.name') }}
+If you have any questions or require assistance, simply reply to this email or reach out to your assigned account manager.
+
+Best regards,  
+**{{ config('app.name') }} Team**
 </x-mail::message>

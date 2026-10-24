@@ -1,23 +1,27 @@
 <x-mail::message>
-# {{ $isReset ? 'Password Reset' : 'Welcome to the Team' }}
+# {{ $isReset ? 'Password Reset Notification' : 'Welcome to the Team!' }}
 
-Hi {{ $staffName }},
+Dear **{{ $staffName }}**,
 
 @if($isReset)
-Your account password has been reset by an administrator. Use the credentials below to log in.
+Your account password for the Agency Management System has been reset by an administrator. Please use the credentials below to log in.
 @else
-An account has been created for you. Use the credentials below to log in.
+An employee workspace account has been created for you on the Agency Management System. You can access your assigned projects, tasks, attendance, and client communications here:
 @endif
 
-**Email:** {{ $email }}
-**Password:** {{ $password }}
+<x-mail::panel>
+**Workspace Login:** [{{ $loginUrl }}]({{ $loginUrl }})  
+**Email:** `{{ $email }}`  
+**Password:** `{{ $password }}`
+</x-mail::panel>
 
-<x-mail::button :url="$loginUrl">
-Log In
+<x-mail::button :url="$loginUrl" color="primary">
+Log In to Workspace
 </x-mail::button>
 
-For security, please log in and change your password as soon as possible.
+> [!NOTE]  
+> Please keep your login credentials secure. You can update your password at any time from your profile settings.
 
-Thanks,<br>
-{{ config('app.name') }}
+Best regards,  
+**{{ config('app.name') }}**
 </x-mail::message>
