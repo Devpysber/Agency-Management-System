@@ -38,7 +38,7 @@ new class extends Component
         
         // Financial
         'deal_value' => 'required|numeric|min:0|max:999999999.99',
-        'currency' => 'required|string|in:USD,EUR,GBP,PKR',
+        'currency' => 'required|string|in:USD,INR,EUR,GBP,AED',
         'probability' => 'nullable|integer|min:0|max:100',
         
         // Timeline
@@ -241,10 +241,11 @@ new class extends Component
                                             Currency
                                         </label>
                                         <select class="form-select @error('currency') is-invalid @enderror" wire:model="currency">
-                                            <option value="USD">USD - US Dollar</option>
-                                            <option value="EUR">EUR - Euro</option>
-                                            <option value="GBP">GBP - British Pound</option>
-                                            <option value="PKR">PKR - Pakistani Rupee</option>
+                                            <option value="INR">INR - Indian Rupee (₹)</option>
+                                            <option value="USD">USD - US Dollar ($)</option>
+                                            <option value="EUR">EUR - Euro (€)</option>
+                                            <option value="GBP">GBP - British Pound (£)</option>
+                                            <option value="AED">AED - UAE Dirham</option>
                                         </select>
                                         @error('currency')
                                             <div class="invalid-feedback">{{ $message }}</div>

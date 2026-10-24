@@ -611,7 +611,13 @@ new class extends Component
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-medium">Currency</label>
-                            <input type="text" class="form-control" wire:model="payment_currency" placeholder="USD">
+                            <select class="form-select" wire:model="payment_currency">
+                                <option value="INR">INR - Indian Rupee (₹)</option>
+                                <option value="USD">USD - US Dollar ($)</option>
+                                <option value="EUR">EUR - Euro (€)</option>
+                                <option value="GBP">GBP - British Pound (£)</option>
+                                <option value="AED">AED - UAE Dirham</option>
+                            </select>
                             @error('payment_currency')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
