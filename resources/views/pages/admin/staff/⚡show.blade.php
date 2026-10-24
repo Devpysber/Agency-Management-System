@@ -16,6 +16,14 @@ new class extends Component
     public function mount($id)
     {
         $this->member = staff::with('user')->findOrFail($id);
+
+        // Security check: staff can only view their own profile unless they have Staff:View permission or are admin
+        $myStaffId = staff::where('user_id', auth()->id())->value('id');
+        $isAdminOrManager = auth()->user()->role === 'admin' || auth()->user()->hasPermission('Staff', 'View');
+
+        if (!$isAdminOrManager && $this->member->id !== $myStaffId) {
+            abort(403, 'Unauthorized access to staff private details.');
+        }
     }
 
     public function generateLogin()
@@ -203,6 +211,7 @@ new class extends Component
         @endif
 
         <!-- Login Access -->
+        @if (auth()->user()->role === 'admin' || auth()->user()->hasPermission('Staff', 'Edit'))
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="fw-semibold mb-0">
@@ -252,6 +261,7 @@ new class extends Component
                 @endif
             </div>
         </div>
+        @endif
 
         <!-- Attendance snapshot -->
         <div class="card mb-4 a-reveal">
@@ -327,6 +337,7 @@ new class extends Component
                         <label class="text-muted small fw-medium">Daily Hours</label>
                         <p>{{ $member->daily_hours ?? 8 }}h</p>
                     </div>
+                    @if(auth()->user()->role === 'admin' || auth()->user()->hasPermission('Finance', 'View'))
                     <div class="col-md-3">
                         <label class="text-muted small fw-medium"><i class="fas fa-id-card"></i> Aadhaar</label>
                         <p>{{ $member->masked_aadhar ?? '—' }}</p>
@@ -339,6 +350,7 @@ new class extends Component
                         <label class="text-muted small fw-medium">Salary</label>
                         <p class="fw-semibold text-success">${{ number_format($member->salary ?? 0, 2) }}</p>
                     </div>
+                    @endif
                     <div class="col-md-6">
                         <label class="text-muted small fw-medium">Status</label>
                         <p>

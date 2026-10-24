@@ -351,13 +351,20 @@ new class extends Component
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{{ route('staff.show', $member->id) }}" class="btn btn-outline-primary" title="View">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{{ route('attendance.person', ['type' => 'staff', 'id' => $member->id]) }}" class="btn btn-outline-success" title="Attendance">
-                                            <i class="fas fa-calendar-check"></i>
-                                        </a>
+                                        @if($member->user_id && $member->user_id !== auth()->id())
+                                            <a href="{{ route('messages.index', ['user' => $member->user_id]) }}" class="btn btn-outline-info" title="Message">
+                                                <i class="fas fa-comment-dots"></i>
+                                            </a>
+                                        @endif
+                                        @if (auth()->user()->role === 'admin' || auth()->user()->hasPermission('Staff', 'Edit') || $member->id === \App\Models\staff::where('user_id', auth()->id())->value('id'))
+                                            <a href="{{ route('staff.show', $member->id) }}" class="btn btn-outline-primary" title="View Profile">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        @endif
                                         @if (auth()->user()->role === 'admin' || auth()->user()->hasPermission('Staff', 'Edit'))
+                                            <a href="{{ route('attendance.person', ['type' => 'staff', 'id' => $member->id]) }}" class="btn btn-outline-success" title="Attendance">
+                                                <i class="fas fa-calendar-check"></i>
+                                            </a>
                                             <a href="{{ route('staff.edit', $member->id) }}" class="btn btn-outline-secondary" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>

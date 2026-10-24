@@ -11,6 +11,14 @@ new class extends Component
 
     public function mount(): void
     {
+        if (request()->has('user')) {
+            $uId = (int) request()->query('user');
+            if (User::where('id', $uId)->exists()) {
+                $this->openThread($uId);
+                return;
+            }
+        }
+
         // Default to the CEO's thread on first open — same entry point the
         // old "Message CEO" link gave, now just one contact among many.
         $ceo = DirectMessage::resolveCeoUser();
