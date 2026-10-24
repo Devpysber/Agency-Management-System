@@ -8,15 +8,26 @@ new class extends Component
     public $gatewayId;
     public $name;
     public $is_active = true;
+    public $key_id;
+    public $key_secret;
+    public $mode = 'sandbox';
+    public $webhook_secret;
 
     public $gateways;
     public $search = '';
     public $showModal = false;
 
-    protected $rules = [
-        'name' => 'required|string|max:255',
-        'is_active' => 'boolean',
-    ];
+    protected function rules()
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'is_active' => 'boolean',
+            'key_id' => 'nullable|string|max:255',
+            'key_secret' => 'nullable|string|max:255',
+            'mode' => 'required|in:sandbox,live',
+            'webhook_secret' => 'nullable|string|max:255',
+        ];
+    }
 
     public function mount()
     {
@@ -50,6 +61,10 @@ new class extends Component
         $this->gatewayId = null;
         $this->name = null;
         $this->is_active = true;
+        $this->key_id = null;
+        $this->key_secret = null;
+        $this->mode = 'sandbox';
+        $this->webhook_secret = null;
         $this->resetErrorBag();
     }
 
@@ -87,6 +102,10 @@ new class extends Component
         $gateway = $this->gatewayId ? PaymentGateway::find($this->gatewayId) : new PaymentGateway;
         $gateway->name = $this->name;
         $gateway->is_active = (bool) $this->is_active;
+        $gateway->key_id = $this->key_id ?: null;
+        $gateway->key_secret = $this->key_secret ?: null;
+        $gateway->mode = $this->mode ?: 'sandbox';
+        $gateway->webhook_secret = $this->webhook_secret ?: null;
         $gateway->save();
 
         session()->flash('success', 'Payment gateway saved successfully!');
@@ -102,6 +121,10 @@ new class extends Component
         $this->gatewayId = $gateway->id;
         $this->name = $gateway->name;
         $this->is_active = $gateway->is_active;
+        $this->key_id = $gateway->key_id;
+        $this->key_secret = $gateway->key_secret;
+        $this->mode = $gateway->mode ?: 'sandbox';
+        $this->webhook_secret = $gateway->webhook_secret;
         $this->showModal = true;
     }
 
@@ -213,7 +236,20 @@ new class extends Component
                         <tbody>
                             @forelse ($gateways as $gateway)
                             <tr>
-                                <td><h6 class="mb-0 fw-semibold">{{ $gateway->name }}</h6></td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <h6 class="mb-0 fw-semibold">{{ $gateway->name }}</h6>
+                                        @if($gateway->isConfigured())
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle small" title="API Keys Active">
+                                                <i class="fas fa-key me-1"></i> {{ ucfirst($gateway->mode) }}
+                                            </span>
+                                        @elseif(in_array(strtolower($gateway->name), ['cashfree', 'razorpay', 'stripe', 'paypal']))
+                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle small" title="Missing API Credentials">
+                                                <i class="fas fa-exclamation-triangle me-1"></i> Keys Missing
+                                            </span>
+                                        @endif
+                                    </div>
+                                </td>
                                 <td>
                                     @if($gateway->is_active)
                                         <span class="badge bg-success"><i class="fas fa-circle me-1" style="font-size: 8px;"></i> Active</span>
@@ -274,10 +310,52 @@ new class extends Component
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-                        <div class="form-check form-switch">
+                        <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" wire:model="is_active" id="gatewayActive">
-                            <label class="form-check-label" for="gatewayActive">Active</label>
+                            <label class="form-check-label fw-semibold" for="gatewayActive">Gateway Active</label>
                         </div>
+
+                        @php
+                            $isApiGateway = in_array(strtolower($name ?? ''), ['cashfree', 'razorpay', 'stripe', 'paypal']);
+                        @endphp
+
+                        @if($isApiGateway)
+                            <div class="p-3 mb-3 rounded" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-key text-primary me-2"></i> API Credentials</h6>
+                                    <span class="badge bg-secondary">{{ strtoupper($name) }}</span>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Environment Mode</label>
+                                    <select class="form-select form-select-sm" wire:model="mode">
+                                        <option value="sandbox">Sandbox / Test Mode</option>
+                                        <option value="live">Live / Production Mode</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">
+                                        @if(strtolower($name) === 'razorpay') Key ID
+                                        @elseif(strtolower($name) === 'cashfree') App ID (Client ID)
+                                        @elseif(strtolower($name) === 'stripe') Publishable Key
+                                        @else Client ID @endif
+                                    </label>
+                                    <input type="text" class="form-control form-control-sm font-monospace" wire:model="key_id" placeholder="Enter Key ID / App ID">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">
+                                        @if(strtolower($name) === 'razorpay') Key Secret
+                                        @elseif(strtolower($name) === 'cashfree') Secret Key
+                                        @elseif(strtolower($name) === 'stripe') Secret Key
+                                        @else Client Secret @endif
+                                    </label>
+                                    <input type="password" class="form-control form-control-sm font-monospace" wire:model="key_secret" placeholder="Enter Secret Key">
+                                </div>
+                                <div class="mb-1">
+                                    <label class="form-label small fw-semibold">Webhook Secret / Signing Key <small class="text-muted">(Optional)</small></label>
+                                    <input type="text" class="form-control form-control-sm font-monospace" wire:model="webhook_secret" placeholder="Optional webhook secret">
+                                </div>
+                            </div>
+                        @endif
                     </form>
                 </div>
                 <div class="modal-footer">
