@@ -63,6 +63,27 @@ class Money
         return $withCode ? $out . ' ' . $code : $out;
     }
 
+    /** System agency currency configured in General Settings (fallback symbol) */
+    public static function systemSymbol(): string
+    {
+        $cs = \App\Models\CompanySetting::first();
+        $curr = strtoupper($cs->currency ?? 'INR');
+        return match($curr) {
+            'INR' => '₹',
+            'USD' => '$',
+            'EUR' => '€',
+            'GBP' => '£',
+            'AED' => 'AED ',
+            default => $curr . ' ',
+        };
+    }
+
+    /** Format amount using the agency's primary system currency */
+    public static function system(float $amount, int $decimals = 2): string
+    {
+        return self::systemSymbol() . number_format($amount, $decimals);
+    }
+
     /** Format for the currently authenticated client. */
     public static function client($amount): string
     {

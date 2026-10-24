@@ -1,17 +1,20 @@
+@php
+    $csSym = \App\Support\Money::systemSymbol();
+@endphp
 <!-- Stats Cards -->
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-icon teal"><i class="fas fa-dollar-sign"></i></div>
+        <div class="stat-icon teal"><i class="fas fa-coins"></i></div>
         <div class="stat-info">
             <h3>Total Revenue</h3>
-            <p class="stat-number">${{ number_format($totalRevenue, 2) }}</p>
+            <p class="stat-number">{{ $csSym }}{{ number_format($totalRevenue, 2) }}</p>
         </div>
     </div>
     <div class="stat-card">
         <div class="stat-icon green"><i class="fas fa-sack-dollar"></i></div>
         <div class="stat-info">
             <h3>Revenue This Month</h3>
-            <p class="stat-number">${{ number_format($revenueThisMonth, 2) }}</p>
+            <p class="stat-number">{{ $csSym }}{{ number_format($revenueThisMonth, 2) }}</p>
         </div>
     </div>
     <div class="stat-card">
@@ -32,7 +35,7 @@
         <div class="stat-icon orange"><i class="fas fa-chart-line"></i></div>
         <div class="stat-info">
             <h3>Active Pipeline Value</h3>
-            <p class="stat-number">${{ number_format($activePipelineValue) }}</p>
+            <p class="stat-number">{{ $csSym }}{{ number_format($activePipelineValue) }}</p>
         </div>
     </div>
     <div class="stat-card">
@@ -46,7 +49,7 @@
         <div class="stat-icon orange"><i class="fas fa-hand-holding-dollar"></i></div>
         <div class="stat-info">
             <h3>Outstanding</h3>
-            <p class="stat-number">${{ number_format($outstanding, 2) }}</p>
+            <p class="stat-number">{{ $csSym }}{{ number_format($outstanding, 2) }}</p>
         </div>
     </div>
     <div class="stat-card">
@@ -160,7 +163,7 @@
                     @foreach ($highValueQuotations as $q)
                         <a href="{{ route('quotations.show', $q->id) }}" class="d-flex justify-content-between align-items-center px-3 py-2 text-decoration-none {{ !$loop->last ? 'border-bottom' : '' }}">
                             <span>{{ $q->name }}</span>
-                            <span class="fw-semibold">${{ number_format($q->quoted_amount, 2) }}</span>
+                            <span class="fw-semibold">{{ \App\Support\Money::systemSymbol() }}{{ number_format($q->quoted_amount, 2) }}</span>
                         </a>
                     @endforeach
                 </div>
@@ -214,7 +217,7 @@
                                 <tr>
                                     <td>{{ $deal->deal_name }}</td>
                                     <td>{{ $deal->company->company_name ?? '—' }}</td>
-                                    <td class="fw-semibold">${{ number_format($deal->deal_value) }}</td>
+                                    <td class="fw-semibold">{{ \App\Support\Money::systemSymbol() }}{{ number_format($deal->deal_value) }}</td>
                                 </tr>
                             @empty
                                 <tr><td colspan="3" class="text-center text-muted py-4">No active deals.</td></tr>

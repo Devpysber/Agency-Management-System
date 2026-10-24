@@ -1,5 +1,6 @@
 @php
-    $fmtMoney = fn ($v) => '$' . number_format((float) $v);
+    $csSym = \App\Support\Money::systemSymbol();
+    $fmtMoney = fn ($v) => $csSym . number_format((float) $v, 2);
     $deltaUp = $revenueDelta !== null && $revenueDelta >= 0;
 @endphp
 
@@ -200,7 +201,7 @@
                             <div class="pipeline-card">
                                 <div class="d-flex justify-content-between">
                                     <span>{{ $deal->deal_name }}</span>
-                                    <span class="fw-semibold">${{ number_format($deal->deal_value) }}</span>
+                                    <span class="fw-semibold">{{ \App\Support\Money::systemSymbol() }}{{ number_format($deal->deal_value) }}</span>
                                 </div>
                             </div>
                         @empty

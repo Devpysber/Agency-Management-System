@@ -2,7 +2,7 @@
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon orange"><i class="fas fa-chart-line"></i></div>
-        <div class="stat-info"><h3>Active Pipeline</h3><p class="stat-number">${{ number_format($activePipelineValue) }}</p></div>
+        <div class="stat-info"><h3>Active Pipeline</h3><p class="stat-number">{{ \App\Support\Money::systemSymbol() }}{{ number_format($activePipelineValue) }}</p></div>
     </div>
     <div class="stat-card">
         <div class="stat-icon green"><i class="fas fa-handshake"></i></div>
@@ -78,7 +78,7 @@
                 @forelse ($topDeals as $d)
                     <a href="{{ route('deals.view', $d->id) }}" class="d-flex justify-content-between px-3 py-2 text-decoration-none {{ !$loop->last ? 'border-bottom' : '' }}">
                         <span>{{ $d->deal_name }}</span>
-                        <span class="fw-semibold">${{ number_format($d->deal_value) }}</span>
+                        <span class="fw-semibold">{{ \App\Support\Money::systemSymbol() }}{{ number_format($d->deal_value) }}</span>
                     </a>
                 @empty
                     <p class="text-muted mb-0 p-3">No active deals.</p>

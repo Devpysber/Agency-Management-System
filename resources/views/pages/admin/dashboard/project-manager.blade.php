@@ -32,7 +32,7 @@
         <div class="stat-icon purple"><i class="fas fa-sack-dollar"></i></div>
         <div class="stat-info">
             <h3>Budget Collected</h3>
-            <p class="stat-number">${{ number_format($collected, 2) }}</p>
+            <p class="stat-number">{{ \App\Support\Money::systemSymbol() }}{{ number_format($collected, 2) }}</p>
             <span class="stat-change">of ${{ number_format($totalBudget, 2) }} budgeted</span>
         </div>
     </div>
@@ -40,7 +40,7 @@
         <div class="stat-icon orange"><i class="fas fa-hand-holding-dollar"></i></div>
         <div class="stat-info">
             <h3>Outstanding</h3>
-            <p class="stat-number">${{ number_format($outstanding, 2) }}</p>
+            <p class="stat-number">{{ \App\Support\Money::systemSymbol() }}{{ number_format($outstanding, 2) }}</p>
         </div>
     </div>
 </div>

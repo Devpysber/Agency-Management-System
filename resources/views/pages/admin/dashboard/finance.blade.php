@@ -2,15 +2,15 @@
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon green"><i class="fas fa-sack-dollar"></i></div>
-        <div class="stat-info"><h3>Total Paid</h3><p class="stat-number">${{ number_format($totalPaid, 2) }}</p></div>
+        <div class="stat-info"><h3>Total Paid</h3><p class="stat-number">{{ \App\Support\Money::systemSymbol() }}{{ number_format($totalPaid, 2) }}</p></div>
     </div>
     <div class="stat-card">
         <div class="stat-icon orange"><i class="fas fa-hand-holding-dollar"></i></div>
-        <div class="stat-info"><h3>Outstanding</h3><p class="stat-number">${{ number_format($outstanding, 2) }}</p></div>
+        <div class="stat-info"><h3>Outstanding</h3><p class="stat-number">{{ \App\Support\Money::systemSymbol() }}{{ number_format($outstanding, 2) }}</p></div>
     </div>
     <div class="stat-card">
         <div class="stat-icon red"><i class="fas fa-triangle-exclamation"></i></div>
-        <div class="stat-info"><h3>Overdue</h3><p class="stat-number">${{ number_format($overdueTotal, 2) }}</p>
+        <div class="stat-info"><h3>Overdue</h3><p class="stat-number">{{ \App\Support\Money::systemSymbol() }}{{ number_format($overdueTotal, 2) }}</p>
             <span class="stat-change">{{ $overdueCount }} invoice(s)</span></div>
     </div>
 </div>
@@ -25,7 +25,7 @@
             <div class="d-flex justify-content-between align-items-center px-3 py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
                 <span>{{ $p->project->company->company_name ?? $p->project->name ?? '—' }}</span>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="fw-semibold text-danger">${{ number_format($p->amount, 2) }}</span>
+                    <span class="fw-semibold text-danger">{{ \App\Support\Money::systemSymbol() }}{{ number_format($p->amount, 2) }}</span>
                     @if ($canRecord)
                         <button class="btn btn-sm btn-success" wire:click="recordPayment({{ $p->id }})"
                                 wire:confirm="Mark this ${{ number_format($p->amount, 2) }} payment as paid?">
@@ -48,7 +48,7 @@
                 @forelse ($byCompany as $company => $amount)
                     <div class="d-flex justify-content-between px-3 py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
                         <span>{{ $company }}</span>
-                        <span class="fw-semibold">${{ number_format($amount, 2) }}</span>
+                        <span class="fw-semibold">{{ \App\Support\Money::systemSymbol() }}{{ number_format($amount, 2) }}</span>
                     </div>
                 @empty
                     <p class="text-muted mb-0 p-3">No outstanding balances.</p>
@@ -66,7 +66,7 @@
                     <div class="d-flex justify-content-between align-items-center px-3 py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
                         <span>{{ $p->project->company->company_name ?? $p->project->name ?? '—' }}</span>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="text-success fw-semibold">${{ number_format($p->amount, 2) }}</span>
+                            <span class="text-success fw-semibold">{{ \App\Support\Money::systemSymbol() }}{{ number_format($p->amount, 2) }}</span>
                             @if ($canApprove)
                                 <button class="btn btn-sm btn-outline-warning" wire:click="approveRefund({{ $p->id }})"
                                         wire:confirm="Approve a refund of ${{ number_format($p->amount, 2) }}?">
@@ -97,7 +97,7 @@
                         <tr>
                             <td>{{ $p->project->company->company_name ?? '—' }}</td>
                             <td>{{ $p->project->name ?? '—' }}</td>
-                            <td>${{ number_format($p->amount, 2) }}</td>
+                            <td>{{ \App\Support\Money::systemSymbol() }}{{ number_format($p->amount, 2) }}</td>
                             <td><span class="badge bg-warning text-dark">{{ ucfirst($p->status) }}</span></td>
                             <td>
                                 @if ($canRecord)

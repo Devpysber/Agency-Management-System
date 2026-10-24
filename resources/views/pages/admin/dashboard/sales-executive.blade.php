@@ -11,7 +11,7 @@
         <div class="stat-icon orange"><i class="fas fa-chart-line"></i></div>
         <div class="stat-info">
             <h3>My Pipeline Value</h3>
-            <p class="stat-number">${{ number_format($myPipelineValue) }}</p>
+            <p class="stat-number">{{ \App\Support\Money::systemSymbol() }}{{ number_format($myPipelineValue) }}</p>
         </div>
     </div>
     <div class="stat-card">
@@ -79,7 +79,7 @@
                             <tr style="cursor:pointer" onclick="window.location='{{ route('deals.view', $deal->id) }}'">
                                 <td>{{ $deal->deal_name }}</td>
                                 <td>{{ $deal->company->company_name ?? '—' }}</td>
-                                <td class="fw-semibold">${{ number_format($deal->deal_value) }}</td>
+                                <td class="fw-semibold">{{ \App\Support\Money::systemSymbol() }}{{ number_format($deal->deal_value) }}</td>
                             </tr>
                         @empty
                             <tr><td colspan="3" class="text-center text-muted py-4">No open deals.</td></tr>
