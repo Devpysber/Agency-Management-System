@@ -1,8 +1,8 @@
 @php
     $cs = \App\Models\CompanySetting::first();
     $companyName = ($cs && $cs->business_name) ? $cs->business_name : config('app.name');
-    $companyEmail = ($cs && $cs->business_email) ? $cs->business_email : 'contact@psyber.co';
-    $companyPhone = ($cs && $cs->business_phone) ? $cs->business_phone : null;
+    $companyEmail = ($cs && $cs->contact_email) ? $cs->contact_email : 'antriksh@psyber.co';
+    $companyPhone = ($cs && $cs->contact_phone) ? $cs->contact_phone : null;
 @endphp
 <tr>
 <td>
