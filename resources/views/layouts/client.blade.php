@@ -45,6 +45,17 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Client Portal' }} · {{ $cpCompany->company_name ?? config('app.name') }}</title>
 
+    @php
+        $faviconUrl = !empty($companySetting?->business_favicon) 
+            ? asset('storage/' . $companySetting->business_favicon) 
+            : null;
+    @endphp
+    @if($faviconUrl)
+        <link rel="icon" type="image/x-icon" href="{{ $faviconUrl }}">
+        <link rel="shortcut icon" href="{{ $faviconUrl }}">
+        <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
+    @endif
+
     {{-- Pre-paint theme: avoids a light→dark flash on load --}}
     <script>
         (function () {
@@ -77,11 +88,15 @@
         {{-- ==================== Sidebar ==================== --}}
         <aside class="cp-sidebar">
             <a href="{{ route('client.dashboard') }}" wire:navigate class="cp-brand">
-                <span class="cp-brand-mark"><i class="fas fa-layer-group"></i></span>
-                <span class="cp-brand-text">
-                    Client Portal
-                    <small>{{ Str::limit($cpCompany->company_name ?? 'Workspace', 22) }}</small>
-                </span>
+                @if(!empty($companySetting?->business_logo))
+                    <img src="{{ asset('storage/' . $companySetting->business_logo) }}" alt="{{ $companySetting->business_name ?? 'Logo' }}" style="max-height: 36px; max-width: 160px; object-fit: contain;">
+                @else
+                    <span class="cp-brand-mark"><i class="fas fa-layer-group"></i></span>
+                    <span class="cp-brand-text">
+                        {{ $companySetting->business_name ?? 'Client Portal' }}
+                        <small>{{ Str::limit($cpCompany->company_name ?? 'Workspace', 22) }}</small>
+                    </span>
+                @endif
             </a>
 
             <nav class="cp-nav">

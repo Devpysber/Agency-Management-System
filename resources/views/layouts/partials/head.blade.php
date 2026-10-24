@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? config('app.name') }}</title>
 
+    @php
+        $faviconUrl = !empty($companySetting?->business_favicon) 
+            ? asset('storage/' . $companySetting->business_favicon) 
+            : null;
+    @endphp
+    @if($faviconUrl)
+        <link rel="icon" type="image/x-icon" href="{{ $faviconUrl }}">
+        <link rel="shortcut icon" href="{{ $faviconUrl }}">
+        <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
+    @endif
+
     {{-- Theme: applied before paint to avoid a flash. Shared key `cp-theme`
          (same as the login page + client portal). --}}
     <script>

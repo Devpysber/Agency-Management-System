@@ -7,9 +7,13 @@
                 <button class="sidebar-toggle" onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
-                <a href="#" class="logo">
-                    <i class="fas fa-cube"></i>
-                    <span>CRM System</span>
+                <a href="{{ route('dashboard') }}" class="logo">
+                    @if(!empty($companySetting?->business_logo))
+                        <img src="{{ asset('storage/' . $companySetting->business_logo) }}" alt="{{ $companySetting->business_name ?? 'Logo' }}" style="max-height: 34px; max-width: 170px; object-fit: contain;">
+                    @else
+                        <i class="fas fa-cube"></i>
+                        <span>{{ $companySetting->business_name ?? 'CRM System' }}</span>
+                    @endif
                 </a>
             </div>
             <div class="header-right">

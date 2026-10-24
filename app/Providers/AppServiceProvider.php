@@ -53,11 +53,16 @@ class AppServiceProvider extends ServiceProvider
         // Admin/staff changes -> client-portal notifications (and chat pings).
         \App\Support\AlertHooks::register();
 
-        // Dynamically apply database-configured SMTP settings if host is configured
+        // Dynamically apply database-configured settings (brand, logo, SMTP)
         try {
             if (\Illuminate\Support\Facades\Schema::hasTable('company_settings')) {
                 $cs = \App\Models\CompanySetting::find(1);
                 if ($cs) {
+                    \Illuminate\Support\Facades\View::share('companySetting', $cs);
+
+                    if (!empty($cs->business_name)) {
+                        config(['app.name' => $cs->business_name]);
+                    }
                     if (!empty($cs->mail_from_address)) {
                         config(['mail.from.address' => $cs->mail_from_address]);
                     }

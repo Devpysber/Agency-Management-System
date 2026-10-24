@@ -9,6 +9,17 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sign in · {{ $appName }}</title>
 
+    @php
+        $faviconUrl = !empty($companySetting?->business_favicon) 
+            ? asset('storage/' . $companySetting->business_favicon) 
+            : null;
+    @endphp
+    @if($faviconUrl)
+        <link rel="icon" type="image/x-icon" href="{{ $faviconUrl }}">
+        <link rel="shortcut icon" href="{{ $faviconUrl }}">
+        <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
+    @endif
+
     <script>
         (function () {
             try {
@@ -155,8 +166,12 @@
     <div class="lg-wrap">
         <div class="lg-brand">
             <div class="lg-logo">
-                <span class="mark"><i class="fas fa-cube"></i></span>
-                {{ $appName }}
+                @if(!empty($companySetting?->business_logo))
+                    <img src="{{ asset('storage/' . $companySetting->business_logo) }}" alt="{{ $appName }}" style="max-height: 44px; max-width: 200px; object-fit: contain;">
+                @else
+                    <span class="mark"><i class="fas fa-cube"></i></span>
+                    {{ $appName }}
+                @endif
             </div>
 
             <div class="lg-pitch">
@@ -177,8 +192,12 @@
         <div class="lg-panel">
             <div class="lg-card">
                 <div class="lg-mobile-brand">
-                    <span class="mark"><i class="fas fa-cube"></i></span>
-                    {{ $appName }}
+                    @if(!empty($companySetting?->business_logo))
+                        <img src="{{ asset('storage/' . $companySetting->business_logo) }}" alt="{{ $appName }}" style="max-height: 40px; max-width: 180px; object-fit: contain;">
+                    @else
+                        <span class="mark"><i class="fas fa-cube"></i></span>
+                        {{ $appName }}
+                    @endif
                 </div>
 
                 <h2>Sign in</h2>
