@@ -217,7 +217,7 @@ new class extends Component
                     </div>
                     <div class="stat-info">
                         <h3>Total Amount</h3>
-                        <p class="stat-number">${{ number_format($totalAmount, 2) }}</p>
+                        <p class="stat-number">{{ \App\Support\Money::systemSymbol() }}{{ number_format($totalAmount, 2) }}</p>
                     </div>
                 </div>
             </div>

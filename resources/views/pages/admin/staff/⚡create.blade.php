@@ -377,7 +377,7 @@ new class extends Component
                                         </td>
                                         <td>
                                             <span class="fw-semibold">
-                                                ${{ number_format($staff->salary ?? 0, 2) }}
+                                                {{ \App\Support\Money::systemSymbol() }}{{ number_format($staff->salary ?? 0, 2) }}
                                             </span>
                                         </td>
                                         <td>
@@ -453,7 +453,7 @@ new class extends Component
                             </div>
                             <div class="col-md-6">
                                 <label class="text-muted small fw-medium">Salary</label>
-                                <p class="fw-semibold text-success">${{ number_format($viewingStaff->salary ?? 0, 2) }}</p>
+                                <p class="fw-semibold text-success">{{ \App\Support\Money::systemSymbol() }}{{ number_format($viewingStaff->salary ?? 0, 2) }}</p>
                             </div>
                             <div class="col-md-6">
                                 <label class="text-muted small fw-medium">User ID</label>

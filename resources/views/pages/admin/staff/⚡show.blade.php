@@ -348,7 +348,7 @@ new class extends Component
                     </div>
                     <div class="col-md-6">
                         <label class="text-muted small fw-medium">Salary</label>
-                        <p class="fw-semibold text-success">${{ number_format($member->salary ?? 0, 2) }}</p>
+                        <p class="fw-semibold text-success">{{ \App\Support\Money::systemSymbol() }}{{ number_format($member->salary ?? 0, 2) }}</p>
                     </div>
                     @endif
                     <div class="col-md-6">

@@ -176,7 +176,7 @@ new class extends Component
                                     @endif
                                 </td>
                                 <td>{{ $member->deals_won_count }}</td>
-                                <td>${{ number_format($member->deals_won_value, 2) }}</td>
+                                <td>{{ \App\Support\Money::systemSymbol() }}{{ number_format($member->deals_won_value, 2) }}</td>
                                 <td>{{ $member->communications_count }}</td>
                             </tr>
                             @empty

@@ -319,7 +319,7 @@ new class extends Component
                                     </td>
                                     <td>
                                         <span class="fw-semibold">
-                                            ${{ number_format((float)($item['qty'] ?? 0) * (float)($item['unit_price'] ?? 0), 2) }}
+                                            {{ \App\Support\Money::systemSymbol() }}{{ number_format((float)($item['qty'] ?? 0) * (float)($item['unit_price'] ?? 0), 2) }}
                                         </span>
                                     </td>
                                     <td>
@@ -338,7 +338,7 @@ new class extends Component
                     <div class="col-md-4">
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Subtotal</span>
-                            <span class="fw-semibold">${{ number_format($this->subtotal, 2) }}</span>
+                            <span class="fw-semibold">{{ \App\Support\Money::systemSymbol() }}{{ number_format($this->subtotal, 2) }}</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted">Tax</span>
@@ -347,7 +347,7 @@ new class extends Component
                         <hr>
                         <div class="d-flex justify-content-between">
                             <span class="fw-bold">Total</span>
-                            <span class="fw-bold fs-5">${{ number_format($this->total, 2) }}</span>
+                            <span class="fw-bold fs-5">{{ \App\Support\Money::systemSymbol() }}{{ number_format($this->total, 2) }}</span>
                         </div>
                     </div>
                 </div>

@@ -122,8 +122,8 @@ new class extends Component
                                 <tr>
                                     <td>{{ $item->description }}</td>
                                     <td class="text-end">{{ $item->qty }}</td>
-                                    <td class="text-end">${{ number_format($item->unit_price, 2) }}</td>
-                                    <td class="text-end">${{ number_format($item->qty * $item->unit_price, 2) }}</td>
+                                    <td class="text-end">{{ \App\Support\Money::systemSymbol() }}{{ number_format($item->unit_price, 2) }}</td>
+                                    <td class="text-end">{{ \App\Support\Money::systemSymbol() }}{{ number_format($item->qty * $item->unit_price, 2) }}</td>
                                 </tr>
                             @empty
                                 <tr>
@@ -139,16 +139,16 @@ new class extends Component
                     <div class="col-md-4">
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Subtotal</span>
-                            <span>${{ number_format($estimate->subtotal, 2) }}</span>
+                            <span>{{ \App\Support\Money::systemSymbol() }}{{ number_format($estimate->subtotal, 2) }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Tax</span>
-                            <span>${{ number_format($estimate->tax ?? 0, 2) }}</span>
+                            <span>{{ \App\Support\Money::systemSymbol() }}{{ number_format($estimate->tax ?? 0, 2) }}</span>
                         </div>
                         <hr>
                         <div class="d-flex justify-content-between">
                             <span class="fw-bold fs-5">Total</span>
-                            <span class="fw-bold fs-5">${{ number_format($estimate->total, 2) }}</span>
+                            <span class="fw-bold fs-5">{{ \App\Support\Money::systemSymbol() }}{{ number_format($estimate->total, 2) }}</span>
                         </div>
                     </div>
                 </div>

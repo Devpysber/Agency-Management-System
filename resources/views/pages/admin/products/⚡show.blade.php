@@ -132,7 +132,7 @@ new class extends Component
                             </div>
                             <div class="col-md-6">
                                 <label class="text-muted small fw-medium">Price</label>
-                                <p class="fw-semibold">{{ $product->price !== null ? '$' . number_format($product->price, 2) : 'N/A' }}</p>
+                                <p class="fw-semibold">{{ $product->price !== null ? \App\Support\Money::systemSymbol() . number_format($product->price, 2) : 'N/A' }}</p>
                             </div>
                             <div class="col-md-6">
                                 <label class="text-muted small fw-medium">Stock Quantity</label>

@@ -28,7 +28,7 @@
                     <span class="fw-semibold text-danger">{{ \App\Support\Money::systemSymbol() }}{{ number_format($p->amount, 2) }}</span>
                     @if ($canRecord)
                         <button class="btn btn-sm btn-success" wire:click="recordPayment({{ $p->id }})"
-                                wire:confirm="Mark this ${{ number_format($p->amount, 2) }} payment as paid?">
+                                wire:confirm="Mark this {{ \App\Support\Money::systemSymbol() }}{{ number_format($p->amount, 2) }} payment as paid?">
                             <i class="fas fa-check"></i>
                         </button>
                     @endif
@@ -69,7 +69,7 @@
                             <span class="text-success fw-semibold">{{ \App\Support\Money::systemSymbol() }}{{ number_format($p->amount, 2) }}</span>
                             @if ($canApprove)
                                 <button class="btn btn-sm btn-outline-warning" wire:click="approveRefund({{ $p->id }})"
-                                        wire:confirm="Approve a refund of ${{ number_format($p->amount, 2) }}?">
+                                        wire:confirm="Approve a refund of {{ \App\Support\Money::systemSymbol() }}{{ number_format($p->amount, 2) }}?">
                                     <i class="fas fa-rotate-left"></i>
                                 </button>
                             @endif
@@ -102,7 +102,7 @@
                             <td>
                                 @if ($canRecord)
                                     <button class="btn btn-sm btn-success" wire:click="recordPayment({{ $p->id }})"
-                                            wire:confirm="Mark this ${{ number_format($p->amount, 2) }} payment as paid?">
+                                            wire:confirm="Mark this {{ \App\Support\Money::systemSymbol() }}{{ number_format($p->amount, 2) }} payment as paid?">
                                         <i class="fas fa-check"></i> Record
                                     </button>
                                 @endif

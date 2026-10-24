@@ -33,7 +33,7 @@
         <div class="stat-info">
             <h3>Budget Collected</h3>
             <p class="stat-number">{{ \App\Support\Money::systemSymbol() }}{{ number_format($collected, 2) }}</p>
-            <span class="stat-change">of ${{ number_format($totalBudget, 2) }} budgeted</span>
+            <span class="stat-change">of {{ \App\Support\Money::systemSymbol() }}{{ number_format($totalBudget, 2) }} budgeted</span>
         </div>
     </div>
     <div class="stat-card">

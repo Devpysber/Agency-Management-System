@@ -167,7 +167,7 @@
                         </a>
                     @endforeach
                 </div>
-                <div class="card-body pt-0"><small class="text-muted">≥ ${{ number_format($quotationThreshold) }}, awaiting a decision — visibility only.</small></div>
+                <div class="card-body pt-0"><small class="text-muted">≥ {{ \App\Support\Money::systemSymbol() }}{{ number_format($quotationThreshold) }}, awaiting a decision — visibility only.</small></div>
             </div>
         </div>
     @endif
@@ -283,7 +283,7 @@
                     @if ($outstanding > 0)
                         <div class="alert alert-warning py-2 px-3 mb-1 small">
                             <i class="fas fa-circle-dollar-to-slot me-1"></i>
-                            ${{ number_format($outstanding, 2) }} outstanding across active projects.
+                            {{ \App\Support\Money::systemSymbol() }}{{ number_format($outstanding, 2) }} outstanding across active projects.
                         </div>
                     @endif
                     <a href="{{ route('attendance.index') }}" class="btn btn-outline-primary text-start">

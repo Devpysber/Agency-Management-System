@@ -237,7 +237,7 @@ new class extends Component
                         <div class="card-body d-flex flex-column">
                             <h5 class="fw-semibold mb-2">{{ $plan->name }}</h5>
                             <div class="mb-3">
-                                <span class="fs-3 fw-bold">${{ number_format($plan->price, 2) }}</span>
+                                <span class="fs-3 fw-bold">{{ \App\Support\Money::systemSymbol() }}{{ number_format($plan->price, 2) }}</span>
                                 <span class="text-muted">{{ $plan->billing_period_label }}</span>
                             </div>
 

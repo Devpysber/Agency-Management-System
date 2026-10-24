@@ -278,7 +278,7 @@ new class extends Component
                     </div>
                     <div class="stat-info">
                         <h3>Total Value</h3>
-                        <p class="stat-number">${{ number_format($stats['value'], 2) }}</p>
+                        <p class="stat-number">{{ \App\Support\Money::systemSymbol() }}{{ number_format($stats['value'], 2) }}</p>
                     </div>
                 </div>
             </div>
@@ -353,7 +353,7 @@ new class extends Component
                                     </small>
                                 </td>
                                 <td>
-                                    <span class="fw-semibold">${{ number_format($estimate->total, 2) }}</span>
+                                    <span class="fw-semibold">{{ \App\Support\Money::systemSymbol() }}{{ number_format($estimate->total, 2) }}</span>
                                 </td>
                                 <td>
                                     <span class="badge {{ $estimate->status_badge['class'] }}">

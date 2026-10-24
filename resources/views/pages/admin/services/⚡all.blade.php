@@ -393,7 +393,7 @@ new class extends Component
                                     <span class="badge bg-secondary">{{ $service->category->name ?? 'Uncategorized' }}</span>
                                 </td>
                                 <td>
-                                    <span class="fw-semibold">{{ $service->price !== null ? '$' . number_format($service->price, 2) : 'N/A' }}</span>
+                                    <span class="fw-semibold">{{ $service->price !== null ? \App\Support\Money::systemSymbol() . number_format($service->price, 2) : 'N/A' }}</span>
                                 </td>
                                 <td>
                                     <span class="badge {{ $service->status_badge['class'] }}">

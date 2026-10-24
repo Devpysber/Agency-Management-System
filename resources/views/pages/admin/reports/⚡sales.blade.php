@@ -118,19 +118,19 @@ new class extends Component
             <div class="col-md-3">
                 <div class="stat-card">
                     <div class="stat-icon green"><i class="fas fa-sack-dollar"></i></div>
-                    <div class="stat-info"><h3>Revenue Won</h3><p class="stat-number">${{ number_format($totalRevenue, 2) }}</p></div>
+                    <div class="stat-info"><h3>Revenue Won</h3><p class="stat-number">{{ \App\Support\Money::systemSymbol() }}{{ number_format($totalRevenue, 2) }}</p></div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-card">
                     <div class="stat-icon blue"><i class="fas fa-money-check-dollar"></i></div>
-                    <div class="stat-info"><h3>Payments Collected</h3><p class="stat-number">${{ number_format($collected, 2) }}</p></div>
+                    <div class="stat-info"><h3>Payments Collected</h3><p class="stat-number">{{ \App\Support\Money::systemSymbol() }}{{ number_format($collected, 2) }}</p></div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-card">
                     <div class="stat-icon purple"><i class="fas fa-chart-line"></i></div>
-                    <div class="stat-info"><h3>Open Pipeline</h3><p class="stat-number">${{ number_format($pipelineValue, 2) }}</p></div>
+                    <div class="stat-info"><h3>Open Pipeline</h3><p class="stat-number">{{ \App\Support\Money::systemSymbol() }}{{ number_format($pipelineValue, 2) }}</p></div>
                 </div>
             </div>
             <div class="col-md-3">
@@ -153,7 +153,7 @@ new class extends Component
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between mb-1">
                                     <small class="fw-medium">{{ $row['label'] }}</small>
-                                    <small class="text-muted">${{ number_format($row['total'], 2) }}</small>
+                                    <small class="text-muted">{{ \App\Support\Money::systemSymbol() }}{{ number_format($row['total'], 2) }}</small>
                                 </div>
                                 <div class="progress" style="height: 10px;">
                                     <div class="progress-bar bg-success" style="width: {{ $row['total'] > 0 ? max(4, round($row['total'] / $maxMonthly * 100)) : 0 }}%"></div>
@@ -210,7 +210,7 @@ new class extends Component
                             <tr>
                                 <td class="fw-semibold">{{ $row['company']->company_name }}</td>
                                 <td>{{ $row['count'] }}</td>
-                                <td>${{ number_format($row['total'], 2) }}</td>
+                                <td>{{ \App\Support\Money::systemSymbol() }}{{ number_format($row['total'], 2) }}</td>
                             </tr>
                             @empty
                             <tr>

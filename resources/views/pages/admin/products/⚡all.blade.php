@@ -398,7 +398,7 @@ new class extends Component
                                     <span class="badge bg-secondary">{{ $product->category->name ?? 'Uncategorized' }}</span>
                                 </td>
                                 <td>
-                                    <span class="fw-semibold">{{ $product->price !== null ? '$' . number_format($product->price, 2) : 'N/A' }}</span>
+                                    <span class="fw-semibold">{{ $product->price !== null ? \App\Support\Money::systemSymbol() . number_format($product->price, 2) : 'N/A' }}</span>
                                 </td>
                                 <td>
                                     <span class="fw-semibold">{{ $product->stock_quantity }}</span>
